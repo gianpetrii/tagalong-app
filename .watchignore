@@ -1,0 +1,9 @@
+**/node_modules/**
+**/.git/**
+**/.vercel/**
+**/.next/cache/**
+**/out/**
+**/.firebase/**
+**/*:Zone.Identifier
+**/*.log
+**/*.lock 

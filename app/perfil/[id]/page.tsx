@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation"
-import { getUserProfile } from "@/lib/data"
+import { getUserProfile, getPopularUsers } from "@/lib/data"
 import UserProfileHeader from "@/components/user-profile-header"
 import UserReviews from "@/components/user-reviews"
 import UserTrips from "@/components/user-trips"
@@ -9,6 +9,21 @@ import type { Metadata } from "next"
 
 type Props = {
   params: { id: string }
+}
+
+// Esta función es necesaria para generar rutas estáticas con parámetros dinámicos
+export async function generateStaticParams() {
+  // Obtener IDs de usuarios populares o predeterminados para pre-renderizar
+  const popularUsers = await getPopularUsers()
+  
+  // Fallback a algunos IDs de ejemplo si no hay usuarios populares
+  const userIds = popularUsers.length > 0 
+    ? popularUsers 
+    : ['user1', 'user2', 'user3']
+  
+  return userIds.map(id => ({
+    id: id,
+  }))
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {

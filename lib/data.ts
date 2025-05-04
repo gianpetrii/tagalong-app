@@ -452,3 +452,17 @@ export async function getRelatedTrips(
     )
     .slice(0, 3)
 }
+
+// Función para obtener usuarios populares para pre-renderizar perfiles
+export async function getPopularUsers(): Promise<string[]> {
+  // En un entorno real, esto obtendría los IDs de los usuarios más populares de la base de datos
+  // Por ahora, devolvemos algunos IDs de ejemplo
+  return ['user1', 'user2', 'user3', 'user4', 'user5'];
+}
+
+// Función para obtener viajes populares para pre-renderizar páginas de viaje
+export async function getPopularTrips(): Promise<string[]> {
+  // En un entorno real, esto obtendría los IDs de los viajes más populares de la base de datos
+  // Por ahora, devolvemos los IDs de los viajes de ejemplo
+  return mockTrips.map(trip => trip.id);
+}

@@ -1,23 +1,25 @@
+'use client';
+
+import { useSearchParams } from "next/navigation";
 import { Suspense } from "react"
 import SearchForm from "@/components/search-form"
 import SearchResults from "@/components/search-results"
 import SearchSkeleton from "@/components/search-skeleton"
 import SearchFilters from "@/components/search-filters"
 
-export default function SearchPage({
-  searchParams,
-}: {
-  searchParams: { [key: string]: string | string[] | undefined }
-}) {
-  const origin = searchParams.origen as string
-  const destination = searchParams.destino as string
-  const date = searchParams.fecha as string
-  const sortBy = searchParams.ordenar as string
-  const minPrice = searchParams.precio_min as string
-  const maxPrice = searchParams.precio_max as string
-  const minDepartureTime = searchParams.hora_salida_min as string
-  const maxDepartureTime = searchParams.hora_salida_max as string
-  const minRating = searchParams.calificacion_min as string
+export default function SearchPage() {
+  // Usamos useSearchParams() que es un hook del cliente para obtener los parámetros
+  const searchParams = useSearchParams();
+  
+  const origin = searchParams.get('origen') || '';
+  const destination = searchParams.get('destino') || '';
+  const date = searchParams.get('fecha') || '';
+  const sortBy = searchParams.get('ordenar') || '';
+  const minPrice = searchParams.get('precio_min') || '';
+  const maxPrice = searchParams.get('precio_max') || '';
+  const minDepartureTime = searchParams.get('hora_salida_min') || '';
+  const maxDepartureTime = searchParams.get('hora_salida_max') || '';
+  const minRating = searchParams.get('calificacion_min') || '';
 
   return (
     <div className="container mx-auto px-4 py-8">

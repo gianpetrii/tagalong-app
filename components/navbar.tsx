@@ -4,7 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
-import { Menu, X, User, LogOut, Car, Search, Sun, Moon } from "lucide-react"
+import { Menu, X, User, LogOut, Car, Search } from "lucide-react"
 import { useAuth } from "@/context/auth-context"
 import { Button } from "@/components/ui/button"
 import {
@@ -14,13 +14,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { useTheme } from "next-themes"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const { user, logout } = useAuth()
   const pathname = usePathname()
-  const { setTheme, theme } = useTheme()
 
   const isActive = (path: string) => {
     return pathname === path
@@ -38,7 +37,7 @@ export default function Navbar() {
               height={40}
               className="mr-2"
             />
-            <span className="text-xl font-bold text-emerald-600">ViajeJuntos</span>
+            <span className="text-xl font-bold text-emerald-600 dark:text-emerald-400">ViajeJuntos</span>
           </Link>
 
           <div className="hidden md:flex items-center space-x-1">
@@ -47,7 +46,7 @@ export default function Navbar() {
               className={`px-3 py-2 rounded-md text-sm font-medium ${
                 isActive("/buscar")
                   ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300"
-                  : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
+                  : "text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
               }`}
             >
               <Search className="h-4 w-4 inline mr-1" />
@@ -58,7 +57,7 @@ export default function Navbar() {
               className={`px-3 py-2 rounded-md text-sm font-medium ${
                 isActive("/publicar")
                   ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300"
-                  : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
+                  : "text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
               }`}
             >
               <Car className="h-4 w-4 inline mr-1" />
@@ -69,33 +68,13 @@ export default function Navbar() {
               className={`px-3 py-2 rounded-md text-sm font-medium ${
                 isActive("/como-funciona")
                   ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300"
-                  : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
+                  : "text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
               }`}
             >
               Cómo funciona
             </Link>
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-                  <span className="sr-only">Cambiar tema</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setTheme("light")}>
-                  <Sun className="mr-2 h-4 w-4" />
-                  <span>Claro</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setTheme("dark")}>
-                  <Moon className="mr-2 h-4 w-4" />
-                  <span>Oscuro</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setTheme("system")}>
-                  <span>Sistema</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <ThemeToggle />
 
             {user ? (
               <DropdownMenu>
@@ -110,7 +89,7 @@ export default function Navbar() {
                     />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56" align="end" forceMount>
+                <DropdownMenuContent className="w-56 bg-card text-card-foreground" align="end" forceMount>
                   <div className="flex flex-col space-y-1 p-2">
                     <p className="text-sm font-medium">{user.name}</p>
                     <p className="text-xs text-muted-foreground">{user.email}</p>
@@ -148,28 +127,8 @@ export default function Navbar() {
           </div>
 
           <div className="md:hidden flex items-center">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-                  <span className="sr-only">Cambiar tema</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setTheme("light")}>
-                  <Sun className="mr-2 h-4 w-4" />
-                  <span>Claro</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setTheme("dark")}>
-                  <Moon className="mr-2 h-4 w-4" />
-                  <span>Oscuro</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setTheme("system")}>
-                  <span>Sistema</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
+            <ThemeToggle />
+            
             <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="ml-2 text-gray-700 dark:text-gray-300">
               {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
@@ -186,7 +145,7 @@ export default function Navbar() {
               className={`block px-3 py-2 rounded-md text-base font-medium ${
                 isActive("/buscar")
                   ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300"
-                  : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
+                  : "text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
               }`}
               onClick={() => setIsMenuOpen(false)}
             >
@@ -198,7 +157,7 @@ export default function Navbar() {
               className={`block px-3 py-2 rounded-md text-base font-medium ${
                 isActive("/publicar")
                   ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300"
-                  : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
+                  : "text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
               }`}
               onClick={() => setIsMenuOpen(false)}
             >
@@ -210,7 +169,7 @@ export default function Navbar() {
               className={`block px-3 py-2 rounded-md text-base font-medium ${
                 isActive("/como-funciona")
                   ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300"
-                  : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
+                  : "text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
               }`}
               onClick={() => setIsMenuOpen(false)}
             >
@@ -221,7 +180,7 @@ export default function Navbar() {
               <>
                 <Link
                   href={`/perfil/${user.id}`}
-                  className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
+                  className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
                   onClick={() => setIsMenuOpen(false)}
                 >
                   <User className="h-4 w-4 inline mr-2" />
@@ -229,14 +188,14 @@ export default function Navbar() {
                 </Link>
                 <Link
                   href="/mis-viajes"
-                  className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
+                  className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
                   onClick={() => setIsMenuOpen(false)}
                 >
                   <Car className="h-4 w-4 inline mr-2" />
                   Mis viajes
                 </Link>
                 <button
-                  className="w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
+                  className="w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
                   onClick={() => {
                     logout()
                     setIsMenuOpen(false)
@@ -250,7 +209,7 @@ export default function Navbar() {
               <>
                 <Link
                   href="/login"
-                  className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
+                  className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
                   onClick={() => setIsMenuOpen(false)}
                 >
                   Iniciar sesión

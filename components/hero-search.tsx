@@ -60,11 +60,11 @@ export default function HeroSearch() {
           </p>
         </div>
 
-        <div className="max-w-3xl mx-auto bg-white rounded-lg shadow-lg p-6">
+        <div className="max-w-3xl mx-auto bg-white dark:bg-background rounded-lg shadow-lg p-6">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="relative">
-                <Label htmlFor="origin" className="block text-sm font-medium text-gray-700 mb-1">
+                <Label htmlFor="origin" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                   Origen
                 </Label>
                 <div className="relative">
@@ -112,7 +112,7 @@ export default function HeroSearch() {
               </div>
 
               <div className="relative">
-                <Label htmlFor="destination" className="block text-sm font-medium text-gray-700 mb-1">
+                <Label htmlFor="destination" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                   Destino
                 </Label>
                 <div className="relative">
@@ -160,7 +160,7 @@ export default function HeroSearch() {
               </div>
 
               <div className="relative">
-                <Label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-1">
+                <Label htmlFor="date" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                   Fecha
                 </Label>
                 <div className="relative">

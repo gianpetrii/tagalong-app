@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation"
-import { getTrip } from "@/lib/data"
+import { getTrip, getPopularTrips } from "@/lib/data"
 import TripDetails from "@/components/trip-details"
 import DriverProfile from "@/components/driver-profile"
 import BookingForm from "@/components/booking-form"
@@ -9,6 +9,16 @@ import type { Metadata } from "next"
 
 type Props = {
   params: { id: string }
+}
+
+// Esta función es necesaria para generar rutas estáticas con parámetros dinámicos
+export async function generateStaticParams() {
+  // Obtener IDs de viajes populares para pre-renderizar
+  const tripIds = await getPopularTrips()
+  
+  return tripIds.map(id => ({
+    id: id,
+  }))
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {

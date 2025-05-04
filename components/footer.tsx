@@ -16,7 +16,7 @@ export default function Footer() {
                 height={40}
                 className="mr-2"
               />
-              <span className="text-xl font-bold text-emerald-600">ViajeJuntos</span>
+              <span className="text-xl font-bold text-emerald-600 dark:text-emerald-400">ViajeJuntos</span>
             </div>
             <p className="text-muted-foreground mb-4">
               Conectamos conductores con pasajeros para compartir viajes en Argentina de manera económica, ecológica y
