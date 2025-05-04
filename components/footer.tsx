@@ -9,14 +9,8 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>
             <div className="flex items-center mb-4">
-              <Image
-                src="/placeholder.svg?height=40&width=40"
-                alt="ViajeJuntos Logo"
-                width={40}
-                height={40}
-                className="mr-2"
-              />
-              <span className="text-xl font-bold text-emerald-600 dark:text-emerald-400">ViajeJuntos</span>
+              <MapPin className="h-6 w-6 text-emerald-600 dark:text-emerald-400 mr-2" />
+              <span className="text-xl font-bold text-emerald-600 dark:text-emerald-400">Tag Along</span>
             </div>
             <p className="text-muted-foreground mb-4">
               Conectamos conductores con pasajeros para compartir viajes en Argentina de manera económica, ecológica y
@@ -132,7 +126,7 @@ export default function Footer() {
         </div>
 
         <div className="border-t border-border mt-8 pt-8 text-center text-muted-foreground">
-          <p>&copy; {new Date().getFullYear()} ViajeJuntos. Todos los derechos reservados.</p>
+          <p>&copy; {new Date().getFullYear()} Tag Along. Todos los derechos reservados.</p>
         </div>
       </div>
     </footer>

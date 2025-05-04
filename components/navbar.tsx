@@ -4,7 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
-import { Menu, X, User, LogOut, Car, Search } from "lucide-react"
+import { Menu, X, User, LogOut, Car, Search, MapPin } from "lucide-react"
 import { useAuth } from "@/context/auth-context"
 import { Button } from "@/components/ui/button"
 import {
@@ -30,14 +30,10 @@ export default function Navbar() {
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center h-16">
           <Link href="/" className="flex items-center">
-            <Image
-              src="/placeholder.svg?height=40&width=40"
-              alt="ViajeJuntos Logo"
-              width={40}
-              height={40}
-              className="mr-2"
+            <MapPin 
+              className="h-6 w-6 text-emerald-600 dark:text-emerald-400 mr-2"
             />
-            <span className="text-xl font-bold text-emerald-600 dark:text-emerald-400">ViajeJuntos</span>
+            <span className="text-xl font-bold text-emerald-600 dark:text-emerald-400">Tag Along</span>
           </Link>
 
           <div className="hidden md:flex items-center space-x-1">

@@ -11,18 +11,18 @@ import { ThemeProvider } from "@/components/theme-provider"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "ViajeJuntos | Compartí tu viaje en Argentina",
+  title: "Tag Along | Compartí tu viaje en Argentina",
   description:
     "Conectamos conductores con pasajeros para compartir viajes en Argentina de manera económica, ecológica y social.",
   keywords: "viajes compartidos, carpooling, Argentina, compartir auto, viajes económicos",
-  authors: [{ name: "ViajeJuntos" }],
+  authors: [{ name: "Tag Along" }],
   openGraph: {
     type: "website",
     locale: "es_AR",
-    url: "https://viajejuntos.com.ar",
-    title: "ViajeJuntos | Compartí tu viaje en Argentina",
+    url: "https://tagalong.com.ar",
+    title: "Tag Along | Compartí tu viaje en Argentina",
     description: "Conectamos conductores con pasajeros para compartir viajes en Argentina",
-    siteName: "ViajeJuntos",
+    siteName: "Tag Along",
   },
     generator: 'v0.dev'
 }
