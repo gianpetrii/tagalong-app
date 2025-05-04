@@ -12,6 +12,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/components/ui/use-toast"
 import { Checkbox } from "@/components/ui/checkbox"
+import { useAuth } from "@/context/auth-context"
+import { FirebaseError } from "firebase/app"
 
 export default function RegisterForm() {
   const [name, setName] = useState("")
@@ -21,6 +23,7 @@ export default function RegisterForm() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [acceptTerms, setAcceptTerms] = useState(false)
+  const { register } = useAuth()
   const { toast } = useToast()
   const router = useRouter()
 
@@ -60,18 +63,32 @@ export default function RegisterForm() {
     }
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500))
-
+      await register(email, password, name)
       toast({
         title: "Registro exitoso",
         description: "Tu cuenta ha sido creada correctamente.",
       })
       router.push("/login")
     } catch (error) {
+      let errorMessage = "Ha ocurrido un error al crear tu cuenta. Por favor intenta nuevamente.";
+      
+      if (error instanceof FirebaseError) {
+        switch (error.code) {
+          case 'auth/email-already-in-use':
+            errorMessage = "Este correo electrónico ya está en uso.";
+            break;
+          case 'auth/invalid-email':
+            errorMessage = "El formato del correo electrónico no es válido.";
+            break;
+          case 'auth/weak-password':
+            errorMessage = "La contraseña es demasiado débil. Usa al menos 6 caracteres.";
+            break;
+        }
+      }
+      
       toast({
         title: "Error al registrarse",
-        description: "Ha ocurrido un error al crear tu cuenta. Por favor intenta nuevamente.",
+        description: errorMessage,
         variant: "destructive",
       })
     } finally {
@@ -83,7 +100,7 @@ export default function RegisterForm() {
     <Card>
       <CardHeader>
         <CardTitle>Crear una cuenta</CardTitle>
-        <CardDescription>Ingresa tus datos para registrarte en ViajeJuntos</CardDescription>
+        <CardDescription>Ingresa tus datos para registrarte</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -96,7 +113,7 @@ export default function RegisterForm() {
               <Input
                 id="name"
                 type="text"
-                placeholder="Tu nombre completo"
+                placeholder="Juan Pérez"
                 className="pl-10"
                 value={name}
                 onChange={(e) => setName(e.target.value)}

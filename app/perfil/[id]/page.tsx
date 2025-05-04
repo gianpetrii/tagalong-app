@@ -16,12 +16,22 @@ export async function generateStaticParams() {
   // Obtener IDs de usuarios populares o predeterminados para pre-renderizar
   const popularUsers = await getPopularUsers()
   
-  // Fallback a algunos IDs de ejemplo si no hay usuarios populares
-  const userIds = popularUsers.length > 0 
-    ? popularUsers 
-    : ['user1', 'user2', 'user3']
+  // IDs de Firebase reales que necesitamos incluir
+  const firebaseUserIds = [
+    '4eTph1IIrGPZuOZUYCqDynat3YQ2', // ID específico del error
+    // Añade aquí otros IDs de Firebase si los conoces
+  ]
   
-  return userIds.map(id => ({
+  // Fallback a algunos IDs de ejemplo si no hay usuarios populares
+  const defaultUserIds = ['user1', 'user2', 'user3', '101', '102', '103']
+  
+  // Combinar todos los IDs
+  const userIds = [...firebaseUserIds, ...popularUsers, ...defaultUserIds]
+  
+  // Eliminar duplicados
+  const uniqueUserIds = [...new Set(userIds)]
+  
+  return uniqueUserIds.map(id => ({
     id: id,
   }))
 }
@@ -31,13 +41,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   if (!user) {
     return {
-      title: "Usuario no encontrado | ViajeJuntos",
+      title: "Usuario no encontrado | Tag Along",
     }
   }
 
   return {
-    title: `Perfil de ${user.name} | ViajeJuntos`,
-    description: `Ver el perfil de ${user.name} en ViajeJuntos. Calificación: ${user.rating}/5 basado en ${user.reviewCount} opiniones.`,
+    title: `Perfil de ${user.name} | Tag Along`,
+    description: `Ver el perfil de ${user.name} en Tag Along. Calificación: ${user.rating}/5 basado en ${user.reviewCount} opiniones.`,
   }
 }
 

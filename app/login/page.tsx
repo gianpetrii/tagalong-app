@@ -2,8 +2,8 @@ import LoginForm from "@/components/login-form"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "Iniciar sesión | ViajeJuntos",
-  description: "Inicia sesión en tu cuenta de ViajeJuntos",
+  title: "Iniciar sesión | Tag Along",
+  description: "Inicia sesión en tu cuenta de Tag Along",
 }
 
 export default function LoginPage() {

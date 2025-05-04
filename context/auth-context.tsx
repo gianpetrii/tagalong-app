@@ -2,12 +2,27 @@
 
 import type React from "react"
 import { createContext, useContext, useState, useEffect } from "react"
+import type { User as AuthUser } from "firebase/auth"
+import { 
+  createUserWithEmailAndPassword, 
+  signInWithEmailAndPassword, 
+  signOut, 
+  onAuthStateChanged,
+  GoogleAuthProvider,
+  signInWithPopup,
+  sendPasswordResetEmail
+} from "firebase/auth"
+import { auth } from "@/lib/firebase"
 import type { User } from "@/lib/types"
 
 interface AuthContextType {
   user: User | null
+  firebaseUser: AuthUser | null
   login: (email: string, password: string) => Promise<void>
-  logout: () => void
+  loginWithGoogle: () => Promise<void>
+  logout: () => Promise<void>
+  register: (email: string, password: string, name: string) => Promise<void>
+  resetPassword: (email: string) => Promise<void>
   isLoading: boolean
 }
 
@@ -15,53 +30,53 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
+  const [firebaseUser, setFirebaseUser] = useState<AuthUser | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
-  // Check if user is already logged in on mount
   useEffect(() => {
-    const checkLoggedIn = async () => {
+    const unsubscribe = onAuthStateChanged(auth, async (authUser) => {
+      setIsLoading(true)
       try {
-        // In a real app, this would check for a stored token and validate it
-        const storedUser = localStorage.getItem("user")
-        if (storedUser) {
-          setUser(JSON.parse(storedUser))
+        if (authUser) {
+          setFirebaseUser(authUser)
+          
+          // En una implementación real, aquí buscaríamos datos adicionales del usuario desde Firestore
+          // Por ahora creamos un objeto de usuario con los datos disponibles de Firebase Auth
+          const userProfile: User = {
+            id: authUser.uid,
+            name: authUser.displayName || 'Usuario',
+            email: authUser.email || '',
+            avatar: authUser.photoURL || "/placeholder.svg?height=128&width=128",
+            rating: 0,
+            reviewCount: 0,
+            memberSince: new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' }),
+            bio: '',
+            isVerified: true,
+            emailVerified: authUser.emailVerified,
+            phoneVerified: false,
+            isOnline: true,
+            badges: [],
+          }
+          
+          setUser(userProfile)
+        } else {
+          setFirebaseUser(null)
+          setUser(null)
         }
       } catch (error) {
         console.error("Error checking authentication:", error)
       } finally {
         setIsLoading(false)
       }
-    }
+    })
 
-    checkLoggedIn()
+    return () => unsubscribe()
   }, [])
 
   const login = async (email: string, password: string) => {
     setIsLoading(true)
     try {
-      // In a real app, this would make an API call to authenticate
-      // For demo purposes, we'll simulate a successful login with mock data
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-
-      // Mock user data
-      const mockUser: User = {
-        id: "123",
-        name: "Usuario Demo",
-        email: email,
-        avatar: "/placeholder.svg?height=128&width=128",
-        rating: 4.8,
-        reviewCount: 15,
-        memberSince: "Enero 2023",
-        bio: "Viajero frecuente entre Buenos Aires y Córdoba. Me gusta la música y las conversaciones interesantes.",
-        isVerified: true,
-        emailVerified: true,
-        phoneVerified: true,
-        isOnline: true,
-        badges: ["Conductor Experto", "Viajero Frecuente"],
-      }
-
-      setUser(mockUser)
-      localStorage.setItem("user", JSON.stringify(mockUser))
+      await signInWithEmailAndPassword(auth, email, password)
     } catch (error) {
       console.error("Login error:", error)
       throw error
@@ -70,12 +85,66 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const logout = () => {
-    setUser(null)
-    localStorage.removeItem("user")
+  const loginWithGoogle = async () => {
+    setIsLoading(true)
+    try {
+      const provider = new GoogleAuthProvider()
+      await signInWithPopup(auth, provider)
+    } catch (error) {
+      console.error("Google login error:", error)
+      throw error
+    } finally {
+      setIsLoading(false)
+    }
   }
 
-  return <AuthContext.Provider value={{ user, login, logout, isLoading }}>{children}</AuthContext.Provider>
+  const register = async (email: string, password: string, name: string) => {
+    setIsLoading(true)
+    try {
+      await createUserWithEmailAndPassword(auth, email, password)
+      // En una implementación completa, aquí también crearíamos un perfil de usuario en Firestore
+    } catch (error) {
+      console.error("Registration error:", error)
+      throw error
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const resetPassword = async (email: string) => {
+    try {
+      await sendPasswordResetEmail(auth, email)
+    } catch (error) {
+      console.error("Password reset error:", error)
+      throw error
+    }
+  }
+
+  const logout = async () => {
+    try {
+      await signOut(auth)
+    } catch (error) {
+      console.error("Logout error:", error)
+      throw error
+    }
+  }
+
+  return (
+    <AuthContext.Provider 
+      value={{ 
+        user, 
+        firebaseUser, 
+        login, 
+        loginWithGoogle, 
+        logout, 
+        register, 
+        resetPassword, 
+        isLoading 
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  )
 }
 
 export function useAuth() {

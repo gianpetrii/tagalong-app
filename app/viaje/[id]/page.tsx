@@ -26,12 +26,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   if (!trip) {
     return {
-      title: "Viaje no encontrado | ViajeJuntos",
+      title: "Viaje no encontrado | Tag Along",
     }
   }
 
   return {
-    title: `Viaje de ${trip.origin} a ${trip.destination} | ViajeJuntos`,
+    title: `Viaje de ${trip.origin} a ${trip.destination} | Tag Along`,
     description: `Viaje compartido de ${trip.origin} a ${trip.destination} el ${new Date(trip.date).toLocaleDateString("es-AR")} por $${trip.price}`,
   }
 }

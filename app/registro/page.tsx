@@ -2,8 +2,8 @@ import RegisterForm from "@/components/register-form"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "Registro | ViajeJuntos",
-  description: "Crea una cuenta en ViajeJuntos y comienza a compartir viajes",
+  title: "Registro | Tag Along",
+  description: "Crea una cuenta en Tag Along para compartir viajes",
 }
 
 export default function RegisterPage() {
