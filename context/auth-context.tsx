@@ -46,7 +46,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             id: authUser.uid,
             name: authUser.displayName || 'Usuario',
             email: authUser.email || '',
-            avatar: authUser.photoURL || "/placeholder.svg?height=128&width=128",
+            avatar: authUser.photoURL || null,
             rating: 0,
             reviewCount: 0,
             memberSince: new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' }),

@@ -100,10 +100,10 @@ export default function Footer() {
               <li className="flex items-center">
                 <Mail size={16} className="mr-2 text-muted-foreground" />
                 <a
-                  href="mailto:info@viajejuntos.com.ar"
+                  href="mailto:info@tagalong.com.ar"
                   className="text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  info@viajejuntos.com.ar
+                  info@tagalong.com.ar
                 </a>
               </li>
               <li className="flex items-center">

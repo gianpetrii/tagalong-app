@@ -1,5 +1,5 @@
 import Image from "next/image"
-import { Star } from "lucide-react"
+import { Star, User } from "lucide-react"
 import { getTripReviews } from "@/lib/data"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
@@ -20,13 +20,19 @@ export default async function TripReviews({ tripId }: { tripId: string }) {
           {reviews.map((review) => (
             <div key={review.id} className="border-b border-border pb-6 last:border-0 last:pb-0">
               <div className="flex items-start">
-                <Image
-                  src={review.reviewer.avatar || "/placeholder.svg?height=40&width=40"}
-                  alt={review.reviewer.name}
-                  width={40}
-                  height={40}
-                  className="rounded-full mr-4"
-                />
+                {review.reviewer.avatar ? (
+                  <Image
+                    src={review.reviewer.avatar}
+                    alt={review.reviewer.name}
+                    width={40}
+                    height={40}
+                    className="rounded-full mr-4 border border-muted"
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-full mr-4 border border-muted flex items-center justify-center bg-muted">
+                    <User className="h-4 w-4 text-primary" />
+                  </div>
+                )}
 
                 <div className="flex-grow">
                   <div className="flex items-center justify-between">

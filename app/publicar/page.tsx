@@ -3,7 +3,7 @@ import PostingGuidelines from "@/components/posting-guidelines"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "Publicar un viaje | ViajeJuntos",
+  title: "Publicar un viaje | TagAlong",
   description: "Publicá tu viaje y compartí los gastos con pasajeros que van en tu misma dirección",
 }
 

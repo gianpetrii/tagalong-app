@@ -1,24 +1,30 @@
 import Image from "next/image"
-import { Star, Shield, Check, Calendar } from "lucide-react"
-import type { User } from "@/lib/types"
+import { Star, Shield, Check, Calendar, User } from "lucide-react"
+import type { User as UserType } from "@/lib/types"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 
-export default function UserProfileHeader({ user }: { user: User }) {
+export default function UserProfileHeader({ user }: { user: UserType }) {
   return (
     <Card>
       <CardContent className="p-6">
         <div className="flex flex-col md:flex-row items-center md:items-start">
           <div className="mb-4 md:mb-0 md:mr-6">
             <div className="relative">
-              <Image
-                src={user.avatar || "/placeholder.svg?height=128&width=128"}
-                alt={user.name}
-                width={128}
-                height={128}
-                className="rounded-full"
-              />
+              {user.avatar ? (
+                <Image
+                  src={user.avatar}
+                  alt={user.name}
+                  width={128}
+                  height={128}
+                  className="rounded-full border-2 border-primary"
+                />
+              ) : (
+                <div className="w-32 h-32 rounded-full border-2 border-primary flex items-center justify-center bg-muted">
+                  <User className="h-12 w-12 text-primary" />
+                </div>
+              )}
               {user.isOnline && (
                 <span className="absolute bottom-2 right-2 h-4 w-4 rounded-full bg-green-500 border-2 border-white" />
               )}

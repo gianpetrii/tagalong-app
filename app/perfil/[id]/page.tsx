@@ -32,12 +32,19 @@ export async function generateStaticParams() {
   const uniqueUserIds = [...new Set(userIds)]
   
   return uniqueUserIds.map(id => ({
-    id: id,
+    id,
   }))
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const user = await getUserProfile(params.id)
+  const id = params?.id;
+  if (!id) {
+    return {
+      title: "Usuario no encontrado | Tag Along",
+    }
+  }
+
+  const user = await getUserProfile(id)
 
   if (!user) {
     return {
@@ -52,7 +59,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function UserProfilePage({ params }: Props) {
-  const user = await getUserProfile(params.id)
+  const id = params?.id;
+  if (!id) {
+    notFound()
+  }
+
+  const user = await getUserProfile(id)
 
   if (!user) {
     notFound()
@@ -70,13 +82,13 @@ export default async function UserProfilePage({ params }: Props) {
             <TabsTrigger value="stats">Estadísticas</TabsTrigger>
           </TabsList>
           <TabsContent value="reviews" className="mt-6">
-            <UserReviews userId={params.id} />
+            <UserReviews userId={id} />
           </TabsContent>
           <TabsContent value="trips" className="mt-6">
-            <UserTrips userId={params.id} />
+            <UserTrips userId={id} />
           </TabsContent>
           <TabsContent value="stats" className="mt-6">
-            <UserStats userId={params.id} />
+            <UserStats userId={id} />
           </TabsContent>
         </Tabs>
       </div>

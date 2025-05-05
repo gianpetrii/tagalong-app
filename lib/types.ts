@@ -26,7 +26,7 @@ export interface Stop {
 export interface Driver {
   id: string
   name: string
-  avatar: string
+  avatar: string | null
   rating: number
   reviewCount: number
   memberSince: string
@@ -38,7 +38,7 @@ export interface User {
   id: string
   name: string
   email: string
-  avatar: string
+  avatar: string | null
   rating: number
   reviewCount: number
   memberSince: string
@@ -58,7 +58,7 @@ export interface Review {
   reviewer: {
     id: string
     name: string
-    avatar: string
+    avatar: string | null
   }
 }
 

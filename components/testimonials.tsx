@@ -1,5 +1,5 @@
 import Image from "next/image"
-import { Star, Quote } from "lucide-react"
+import { Star, Quote, User } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 
 export default function Testimonials() {
@@ -7,7 +7,7 @@ export default function Testimonials() {
     {
       id: 1,
       name: "Martín Gómez",
-      avatar: "/placeholder.svg?height=64&width=64",
+      avatar: null,
       role: "Pasajero",
       content:
         "Excelente experiencia. El conductor fue muy amable y puntual. Además, ahorré mucho dinero comparado con otras opciones de transporte.",
@@ -17,7 +17,7 @@ export default function Testimonials() {
     {
       id: 2,
       name: "Laura Fernández",
-      avatar: "/placeholder.svg?height=64&width=64",
+      avatar: null,
       role: "Conductora",
       content:
         "Me encanta poder compartir mi viaje con otras personas. Además de dividir gastos, conocí gente interesante y hice el viaje más ameno.",
@@ -27,7 +27,7 @@ export default function Testimonials() {
     {
       id: 3,
       name: "Carlos Rodríguez",
-      avatar: "/placeholder.svg?height=64&width=64",
+      avatar: null,
       role: "Pasajero",
       content:
         "Viajo regularmente entre Buenos Aires y Rosario, y esta plataforma me ha facilitado mucho los traslados. Recomendado 100%.",
@@ -53,13 +53,19 @@ export default function Testimonials() {
                 <Quote className="absolute top-4 right-4 h-8 w-8 text-muted opacity-20" />
 
                 <div className="flex items-center mb-4">
-                  <Image
-                    src={testimonial.avatar || "/placeholder.svg"}
-                    alt={testimonial.name}
-                    width={48}
-                    height={48}
-                    className="rounded-full mr-4"
-                  />
+                  {testimonial.avatar ? (
+                    <Image
+                      src={testimonial.avatar}
+                      alt={testimonial.name}
+                      width={48}
+                      height={48}
+                      className="rounded-full mr-4 border border-muted"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-full mr-4 border border-muted flex items-center justify-center bg-muted">
+                      <User className="h-5 w-5 text-primary" />
+                    </div>
+                  )}
                   <div>
                     <div className="font-medium">{testimonial.name}</div>
                     <div className="text-muted-foreground text-sm">

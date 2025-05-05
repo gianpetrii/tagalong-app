@@ -75,14 +75,23 @@ export default function Navbar() {
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                    <Image
-                      src={user.avatar || "/placeholder.svg?height=32&width=32"}
-                      alt={user.name}
-                      width={32}
-                      height={32}
-                      className="rounded-full"
-                    />
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    className="focus-visible:ring-0 focus-visible:ring-offset-0"
+                    aria-label="Abrir menú de perfil"
+                  >
+                    {user.avatar ? (
+                      <Image
+                        src={user.avatar}
+                        alt={user.name}
+                        width={32}
+                        height={32}
+                        className="rounded-full"
+                      />
+                    ) : (
+                      <User className="h-5 w-5 text-foreground transition-colors" />
+                    )}
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-56 bg-card text-card-foreground" align="end" forceMount>
@@ -92,7 +101,7 @@ export default function Navbar() {
                   </div>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
-                    <Link href={`/perfil/${user.id}`}>
+                    <Link href="/mi-perfil">
                       <User className="mr-2 h-4 w-4" />
                       <span>Mi perfil</span>
                     </Link>
@@ -124,6 +133,29 @@ export default function Navbar() {
 
           <div className="md:hidden flex items-center">
             <ThemeToggle />
+            
+            {user && (
+              <Link href="/mi-perfil" className="ml-2">
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  className="focus-visible:ring-0 focus-visible:ring-offset-0"
+                  aria-label="Mi perfil"
+                >
+                  {user.avatar ? (
+                    <Image
+                      src={user.avatar}
+                      alt={user.name}
+                      width={32}
+                      height={32}
+                      className="rounded-full"
+                    />
+                  ) : (
+                    <User className="h-5 w-5 text-foreground transition-colors" />
+                  )}
+                </Button>
+              </Link>
+            )}
             
             <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="ml-2 text-gray-700 dark:text-gray-300">
               {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
@@ -175,7 +207,7 @@ export default function Navbar() {
             {user ? (
               <>
                 <Link
-                  href={`/perfil/${user.id}`}
+                  href="/mi-perfil"
                   className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
                   onClick={() => setIsMenuOpen(false)}
                 >

@@ -1,6 +1,6 @@
 import Image from "next/image"
 import Link from "next/link"
-import { Star, Shield, Check, ExternalLink } from "lucide-react"
+import { Star, Shield, Check, ExternalLink, User } from "lucide-react"
 import type { Driver } from "@/lib/types"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -14,13 +14,19 @@ export default function DriverProfile({ driver }: { driver: Driver }) {
       </CardHeader>
       <CardContent>
         <div className="flex items-center mb-6">
-          <Image
-            src={driver.avatar || "/placeholder.svg?height=64&width=64"}
-            alt={driver.name}
-            width={64}
-            height={64}
-            className="rounded-full mr-4"
-          />
+          {driver.avatar ? (
+            <Image
+              src={driver.avatar}
+              alt={driver.name}
+              width={64}
+              height={64}
+              className="rounded-full mr-4 border border-primary"
+            />
+          ) : (
+            <div className="w-16 h-16 rounded-full mr-4 border border-primary flex items-center justify-center bg-muted">
+              <User className="h-6 w-6 text-primary" />
+            </div>
+          )}
           <div>
             <div className="font-medium text-lg">{driver.name}</div>
             <div className="flex items-center">

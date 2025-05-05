@@ -3,14 +3,14 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 export default function FAQ() {
   const faqs = [
     {
-      question: "¿Cómo funciona ViajeJuntos?",
+      question: "¿Cómo funciona TagAlong?",
       answer:
-        "ViajeJuntos conecta conductores que tienen asientos libres con pasajeros que viajan en la misma dirección. Los conductores publican sus viajes especificando ruta, fecha, hora y precio. Los pasajeros pueden buscar viajes disponibles y reservar asientos. El pago se realiza directamente al conductor al inicio del viaje.",
+        "TagAlong conecta conductores que tienen asientos libres con pasajeros que viajan en la misma dirección. Los conductores publican sus viajes especificando ruta, fecha, hora y precio. Los pasajeros pueden buscar viajes disponibles y reservar asientos. El pago se realiza directamente al conductor al inicio del viaje.",
     },
     {
-      question: "¿Cómo me registro en ViajeJuntos?",
+      question: "¿Cómo me registro en TagAlong?",
       answer:
-        "Para registrarte en ViajeJuntos, haz clic en 'Registrarse' en la parte superior derecha de la página. Completa el formulario con tus datos personales, verifica tu correo electrónico y número de teléfono, y ¡listo! Ya puedes comenzar a usar la plataforma.",
+        "Para registrarte en TagAlong, haz clic en 'Registrarse' en la parte superior derecha de la página. Completa el formulario con tus datos personales, verifica tu correo electrónico y número de teléfono, y ¡listo! Ya puedes comenzar a usar la plataforma.",
     },
     {
       question: "¿Cómo publico un viaje?",
@@ -45,12 +45,12 @@ export default function FAQ() {
     {
       question: "¿Qué documentación necesito para ser conductor?",
       answer:
-        "Para ser conductor en ViajeJuntos, necesitas tener una licencia de conducir válida, seguro del vehículo al día y verificar tu identidad en la plataforma. No es necesario tener un vehículo específico, pero debe estar en buenas condiciones y ser seguro para los pasajeros.",
+        "Para ser conductor en TagAlong, necesitas tener una licencia de conducir válida, seguro del vehículo al día y verificar tu identidad en la plataforma. No es necesario tener un vehículo específico, pero debe estar en buenas condiciones y ser seguro para los pasajeros.",
     },
     {
-      question: "¿ViajeJuntos está disponible en toda Argentina?",
+      question: "¿TagAlong está disponible en toda Argentina?",
       answer:
-        "Sí, ViajeJuntos está disponible en todo el territorio argentino. Sin embargo, la disponibilidad de viajes puede variar según la región. Las rutas más populares suelen ser entre grandes ciudades como Buenos Aires, Córdoba, Rosario, Mendoza y Mar del Plata.",
+        "Sí, TagAlong está disponible en todo el territorio argentino. Sin embargo, la disponibilidad de viajes puede variar según la región. Las rutas más populares suelen ser entre grandes ciudades como Buenos Aires, Córdoba, Rosario, Mendoza y Mar del Plata.",
     },
   ]
 
