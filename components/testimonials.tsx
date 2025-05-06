@@ -54,13 +54,13 @@ export default function Testimonials() {
 
                 <div className="flex items-center mb-4">
                   {testimonial.avatar ? (
-                    <Image
+                  <Image
                       src={testimonial.avatar}
-                      alt={testimonial.name}
-                      width={48}
-                      height={48}
+                    alt={testimonial.name}
+                    width={48}
+                    height={48}
                       className="rounded-full mr-4 border border-muted"
-                    />
+                  />
                   ) : (
                     <div className="w-12 h-12 rounded-full mr-4 border border-muted flex items-center justify-center bg-muted">
                       <User className="h-5 w-5 text-primary" />

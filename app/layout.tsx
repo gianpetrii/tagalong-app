@@ -24,7 +24,7 @@ export const metadata: Metadata = {
     description: "Conectamos conductores con pasajeros para compartir viajes en Argentina",
     siteName: "Tag Along",
   },
-    generator: 'v0.dev'
+  generator: 'v0.dev'
 }
 
 export default function RootLayout({

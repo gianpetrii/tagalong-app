@@ -21,13 +21,13 @@ export default async function TripReviews({ tripId }: { tripId: string }) {
             <div key={review.id} className="border-b border-border pb-6 last:border-0 last:pb-0">
               <div className="flex items-start">
                 {review.reviewer.avatar ? (
-                  <Image
+                <Image
                     src={review.reviewer.avatar}
-                    alt={review.reviewer.name}
-                    width={40}
-                    height={40}
+                  alt={review.reviewer.name}
+                  width={40}
+                  height={40}
                     className="rounded-full mr-4 border border-muted"
-                  />
+                />
                 ) : (
                   <div className="w-10 h-10 rounded-full mr-4 border border-muted flex items-center justify-center bg-muted">
                     <User className="h-4 w-4 text-primary" />

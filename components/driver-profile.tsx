@@ -15,13 +15,13 @@ export default function DriverProfile({ driver }: { driver: Driver }) {
       <CardContent>
         <div className="flex items-center mb-6">
           {driver.avatar ? (
-            <Image
+          <Image
               src={driver.avatar}
-              alt={driver.name}
-              width={64}
-              height={64}
+            alt={driver.name}
+            width={64}
+            height={64}
               className="rounded-full mr-4 border border-primary"
-            />
+          />
           ) : (
             <div className="w-16 h-16 rounded-full mr-4 border border-primary flex items-center justify-center bg-muted">
               <User className="h-6 w-6 text-primary" />

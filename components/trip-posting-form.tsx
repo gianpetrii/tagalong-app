@@ -366,7 +366,7 @@ export default function TripPostingForm() {
                   min="1"
                   step="0.01"
                   placeholder="0.00"
-                  className="pl-10 pr-3 py-2"
+                  className="pl-10 pr-3 py-2 text-gray-900 dark:text-gray-100"
                   required
                 />
               </div>
@@ -394,7 +394,7 @@ export default function TripPostingForm() {
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <Car className="h-5 w-5 text-muted-foreground" />
                   </div>
-                  <Input type="text" placeholder="Marca y modelo" className="pl-10 pr-3 py-2" required />
+                  <Input type="text" placeholder="Marca y modelo" className="pl-10 pr-3 py-2 text-gray-900 dark:text-gray-100" required />
                 </div>
               </div>
               <div>

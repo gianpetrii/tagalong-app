@@ -13,13 +13,13 @@ export default function UserProfileHeader({ user }: { user: UserType }) {
           <div className="mb-4 md:mb-0 md:mr-6">
             <div className="relative">
               {user.avatar ? (
-                <Image
+              <Image
                   src={user.avatar}
-                  alt={user.name}
-                  width={128}
-                  height={128}
+                alt={user.name}
+                width={128}
+                height={128}
                   className="rounded-full border-2 border-primary"
-                />
+              />
               ) : (
                 <div className="w-32 h-32 rounded-full border-2 border-primary flex items-center justify-center bg-muted">
                   <User className="h-12 w-12 text-primary" />

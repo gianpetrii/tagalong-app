@@ -77,7 +77,7 @@ export default function SearchForm({ defaultValues = {} }: SearchFormProps) {
                     type="text"
                     id="origin"
                     placeholder="¿Desde dónde salís?"
-                    className="pl-10 pr-3 py-2"
+                    className="pl-10 pr-3 py-2 text-gray-900 dark:text-gray-100"
                     value={origin}
                     onChange={(e) => setOrigin(e.target.value)}
                     required
@@ -125,7 +125,7 @@ export default function SearchForm({ defaultValues = {} }: SearchFormProps) {
                     type="text"
                     id="destination"
                     placeholder="¿A dónde vas?"
-                    className="pl-10 pr-3 py-2"
+                    className="pl-10 pr-3 py-2 text-gray-900 dark:text-gray-100"
                     value={destination}
                     onChange={(e) => setDestination(e.target.value)}
                     required
@@ -172,7 +172,7 @@ export default function SearchForm({ defaultValues = {} }: SearchFormProps) {
                   <Input
                     id="date"
                     placeholder="Seleccionar fecha"
-                    className="pl-10 pr-3 py-2"
+                    className="pl-10 pr-3 py-2 text-gray-900 dark:text-gray-100"
                     value={date ? format(date, "PPP", { locale: es }) : ""}
                     readOnly
                     required
