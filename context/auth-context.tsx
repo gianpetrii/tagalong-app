@@ -12,8 +12,15 @@ import {
   signInWithPopup,
   sendPasswordResetEmail
 } from "firebase/auth"
-import { auth } from "@/lib/firebase"
+import { auth, db } from "@/lib/firebase"
 import type { User } from "@/lib/types"
+import { 
+  doc, 
+  getDoc, 
+  setDoc, 
+  updateDoc, 
+  serverTimestamp
+} from "firebase/firestore"
 
 interface AuthContextType {
   user: User | null
@@ -40,25 +47,48 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (authUser) {
           setFirebaseUser(authUser)
           
-          // En una implementación real, aquí buscaríamos datos adicionales del usuario desde Firestore
-          // Por ahora creamos un objeto de usuario con los datos disponibles de Firebase Auth
-          const userProfile: User = {
-            id: authUser.uid,
-            name: authUser.displayName || 'Usuario',
-            email: authUser.email || '',
-            avatar: authUser.photoURL || null,
-            rating: 0,
-            reviewCount: 0,
-            memberSince: new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' }),
-            bio: '',
-            isVerified: true,
-            emailVerified: authUser.emailVerified,
-            phoneVerified: false,
-            isOnline: true,
-            badges: [],
+          // Get user from Firestore or create a new one
+          const userDocRef = doc(db, "users", authUser.uid);
+          const userDoc = await getDoc(userDocRef);
+          
+          let userProfile: User;
+          
+          if (userDoc.exists()) {
+            // User exists in Firestore
+            userProfile = {
+              id: authUser.uid,
+              ...userDoc.data()
+            } as User;
+            
+            // Update last login time
+            await updateDoc(userDocRef, {
+              lastLogin: serverTimestamp(),
+              isOnline: true
+            });
+          } else {
+            // Create new user in Firestore
+            userProfile = {
+              id: authUser.uid,
+              name: authUser.displayName || 'Usuario',
+              email: authUser.email || '',
+              avatar: authUser.photoURL || null,
+              rating: 0,
+              reviewCount: 0,
+              memberSince: new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' }),
+              bio: '',
+              isVerified: true,
+              emailVerified: authUser.emailVerified,
+              phoneVerified: false,
+              isOnline: true,
+              badges: [],
+              createdAt: serverTimestamp(),
+              lastLogin: serverTimestamp()
+            };
+            
+            await setDoc(userDocRef, userProfile);
           }
           
-          setUser(userProfile)
+          setUser(userProfile);
         } else {
           setFirebaseUser(null)
           setUser(null)
@@ -101,8 +131,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const register = async (email: string, password: string, name: string) => {
     setIsLoading(true)
     try {
-      await createUserWithEmailAndPassword(auth, email, password)
-      // En una implementación completa, aquí también crearíamos un perfil de usuario en Firestore
+      // Create user in Firebase Auth
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const authUser = userCredential.user;
+      
+      // Create user profile in Firestore
+      const userProfile: User = {
+        id: authUser.uid,
+        name: name,
+        email: email,
+        avatar: null,
+        rating: 0,
+        reviewCount: 0,
+        memberSince: new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' }),
+        bio: '',
+        isVerified: false,
+        emailVerified: false,
+        phoneVerified: false,
+        isOnline: true,
+        badges: [],
+        createdAt: serverTimestamp(),
+        lastLogin: serverTimestamp()
+      };
+      
+      await setDoc(doc(db, "users", authUser.uid), userProfile);
     } catch (error) {
       console.error("Registration error:", error)
       throw error
@@ -122,6 +174,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     try {
+      // Update user status to offline if user exists
+      if (user && firebaseUser) {
+        try {
+          const userDocRef = doc(db, "users", firebaseUser.uid);
+          await updateDoc(userDocRef, {
+            isOnline: false,
+            lastLogout: serverTimestamp()
+          });
+        } catch (error) {
+          console.error("Error updating user status:", error);
+        }
+      }
+      
       await signOut(auth)
     } catch (error) {
       console.error("Logout error:", error)

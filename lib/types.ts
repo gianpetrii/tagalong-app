@@ -48,6 +48,9 @@ export interface User {
   phoneVerified: boolean
   isOnline?: boolean
   badges?: string[]
+  createdAt?: any // Firestore timestamp
+  lastLogin?: any // Firestore timestamp
+  lastLogout?: any // Firestore timestamp
 }
 
 export interface Review {

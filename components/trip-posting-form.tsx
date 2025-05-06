@@ -17,14 +17,16 @@ import { format } from "date-fns"
 import { es } from "date-fns/locale"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Checkbox } from "@/components/ui/checkbox"
-import { getPopularCities } from "@/lib/data"
+import { getPopularCities, saveTrip } from "@/lib/data"
 import { useEffect } from "react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { useAuth } from "@/context/auth-context"
 
 export default function TripPostingForm() {
   const router = useRouter()
   const { toast } = useToast()
+  const { user } = useAuth()
   const [stops, setStops] = useState([{ location: "", time: "" }])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [origin, setOrigin] = useState("")
@@ -91,22 +93,85 @@ export default function TripPostingForm() {
     return Object.keys(newErrors).length === 0
   }
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
 
     if (!validateForm()) return
 
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "Debes iniciar sesión para publicar un viaje.",
+        variant: "destructive",
+      })
+      router.push("/login")
+      return
+    }
+
     setIsSubmitting(true)
 
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      // Calculate estimated arrival time (simple calculation for now)
+      const [hours, minutes] = departureTime.split(':').map(Number)
+      let arrivalHours = hours + 2 // assuming 2 hour default duration
+      let arrivalMinutes = minutes
+      
+      if (arrivalHours >= 24) {
+        arrivalHours -= 24
+      }
+      
+      const arrivalTime = `${arrivalHours.toString().padStart(2, '0')}:${arrivalMinutes.toString().padStart(2, '0')}`
+      
+      // Prepare trip data
+      const tripData = {
+        origin,
+        destination,
+        date: date ? format(date, "yyyy-MM-dd") : "",
+        departureTime,
+        arrivalTime,
+        duration: "2h 00m", // default duration
+        price: Number(document.getElementById('price')?.getAttribute('value') || 0),
+        availableSeats: Number(document.getElementById('seats')?.getAttribute('value') || 1),
+        carModel: (document.getElementById('carModel') as HTMLInputElement)?.value || "",
+        carColor: (document.getElementById('carColor') as HTMLInputElement)?.value || "",
+        meetingPoint: (document.getElementById('meetingPoint') as HTMLInputElement)?.value || "",
+        dropOffPoint: (document.getElementById('dropOffPoint') as HTMLInputElement)?.value || "",
+        userId: user.id,
+        stops: stops.filter(stop => stop.location && stop.time),
+        features: Object.entries(features)
+          .filter(([_, isEnabled]) => isEnabled)
+          .map(([feature]) => {
+            switch (feature) {
+              case 'airConditioner': return 'Aire acondicionado'
+              case 'music': return 'Música'
+              case 'pets': return 'Mascotas permitidas'
+              case 'smoking': return 'Fumar permitido'
+              case 'luggage': return 'Equipaje grande'
+              default: return ''
+            }
+          })
+          .filter(Boolean),
+        notes: (document.getElementById('notes') as HTMLTextAreaElement)?.value || "",
+      }
+
+      // Save to Firestore
+      const tripId = await saveTrip(tripData)
+      
       setIsSubmitting(false)
       toast({
         title: "Viaje publicado",
         description: "Tu viaje ha sido publicado correctamente.",
       })
       router.push("/viaje/nuevo-viaje-creado")
-    }, 1500)
+    } catch (error) {
+      console.error("Error al publicar el viaje:", error)
+      setIsSubmitting(false)
+      toast({
+        title: "Error",
+        description: "Hubo un problema al publicar tu viaje. Por favor, inténtalo de nuevo.",
+        variant: "destructive",
+      })
+    }
   }
 
   const filteredOriginCities = cities.filter((city) => city.toLowerCase().includes(origin.toLowerCase()))
@@ -394,11 +459,23 @@ export default function TripPostingForm() {
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <Car className="h-5 w-5 text-muted-foreground" />
                   </div>
-                  <Input type="text" placeholder="Marca y modelo" className="pl-10 pr-3 py-2 text-gray-900 dark:text-gray-100" required />
+                  <Input
+                    type="text"
+                    id="carModel"
+                    placeholder="Marca y modelo"
+                    className="pl-10 pr-3 py-2 text-gray-900 dark:text-gray-100"
+                    required
+                  />
                 </div>
               </div>
               <div>
-                <Input type="text" placeholder="Color" className="px-3 py-2" required />
+                <Input
+                  type="text"
+                  id="carColor"
+                  placeholder="Color"
+                  className="px-3 py-2"
+                  required
+                />
               </div>
               <div>
                 <Input type="text" placeholder="Patente (opcional)" className="px-3 py-2" />
@@ -470,6 +547,29 @@ export default function TripPostingForm() {
               placeholder="Información adicional para los pasajeros..."
               className="px-3 py-2"
             />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <Label htmlFor="meetingPoint">Punto de encuentro</Label>
+              <Input
+                type="text"
+                id="meetingPoint"
+                placeholder="Dirección específica o punto de referencia"
+                className="px-3 py-2"
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="dropOffPoint">Punto de llegada</Label>
+              <Input
+                type="text"
+                id="dropOffPoint"
+                placeholder="Dirección específica o punto de referencia"
+                className="px-3 py-2"
+                required
+              />
+            </div>
           </div>
 
           <div className="flex justify-end">

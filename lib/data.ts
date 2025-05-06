@@ -1,4 +1,6 @@
-import type { Trip, User, Review, UserStats } from "./types"
+import type { Trip, User, Review, UserStats, Driver } from "./types"
+import { db } from "./firebase"
+import { collection, doc, getDocs, getDoc, addDoc, query, where, limit, serverTimestamp } from "firebase/firestore"
 
 // Mock data for trips
 const mockTrips: Trip[] = [
@@ -309,11 +311,55 @@ export async function getPopularCities(): Promise<string[]> {
 
 // Mock function to get a trip by ID
 export async function getTrip(id: string): Promise<Trip | null> {
-  // Simulate API delay
-  await new Promise((resolve) => setTimeout(resolve, 500))
+  try {
+    // Check for the "nuevo-viaje-creado" special case
+    if (id === "nuevo-viaje-creado") {
+      return {
+        id: "nuevo-viaje-creado",
+        origin: "Origen",
+        destination: "Destino",
+        date: new Date().toISOString().split('T')[0],
+        departureTime: "09:00",
+        arrivalTime: "12:00",
+        duration: "3h 00m",
+        price: 0,
+        availableSeats: 0,
+        carModel: "N/A",
+        carColor: "N/A",
+        meetingPoint: "N/A",
+        dropOffPoint: "N/A",
+        driver: {
+          id: "system",
+          name: "Sistema",
+          avatar: null,
+          rating: 5,
+          reviewCount: 0,
+          memberSince: new Date().toLocaleDateString("es-AR", { month: 'long', year: 'numeric' }),
+          preferences: [],
+        },
+      };
+    }
 
-  const trip = mockTrips.find((trip) => trip.id === id)
-  return trip || null
+    // Try to get from Firestore
+    const tripDoc = await getDoc(doc(db, "trips", id));
+    
+    if (tripDoc.exists()) {
+      const tripData = tripDoc.data();
+      return {
+        id: tripDoc.id,
+        ...tripData,
+      } as Trip;
+    }
+
+    // Fall back to mock data if not found
+    const trip = mockTrips.find((trip) => trip.id === id)
+    return trip || null
+  } catch (error) {
+    console.error("Error fetching trip:", error);
+    // Fall back to mock data in case of error
+    const trip = mockTrips.find((trip) => trip.id === id)
+    return trip || null
+  }
 }
 
 // Mock function to search trips
@@ -328,58 +374,143 @@ export async function searchTrips(
   maxDepartureTime?: string,
   minRating?: number,
 ): Promise<Trip[]> {
-  // Simulate API delay
-  await new Promise((resolve) => setTimeout(resolve, 1000))
+  try {
+    // Build query for Firestore
+    let tripsQuery = query(collection(db, "trips"));
+    
+    // Apply filters
+    if (origin) {
+      tripsQuery = query(tripsQuery, where("origin", "==", origin));
+    }
+    
+    if (destination) {
+      tripsQuery = query(tripsQuery, where("destination", "==", destination));
+    }
+    
+    if (date) {
+      tripsQuery = query(tripsQuery, where("date", "==", date));
+    }
+    
+    // Execute query
+    const querySnapshot = await getDocs(tripsQuery);
+    
+    if (!querySnapshot.empty) {
+      // Get trips from Firestore
+      let trips: Trip[] = querySnapshot.docs.map(doc => {
+        return {
+          id: doc.id,
+          ...doc.data()
+        } as Trip;
+      });
+      
+      // Apply client-side filters for complex queries
+      if (minPrice !== undefined) {
+        trips = trips.filter((trip) => trip.price >= minPrice);
+      }
+      
+      if (maxPrice !== undefined) {
+        trips = trips.filter((trip) => trip.price <= maxPrice);
+      }
+      
+      if (minDepartureTime) {
+        trips = trips.filter((trip) => trip.departureTime >= minDepartureTime);
+      }
+      
+      if (maxDepartureTime) {
+        trips = trips.filter((trip) => trip.departureTime <= maxDepartureTime);
+      }
+      
+      if (minRating !== undefined) {
+        trips = trips.filter((trip) => trip.driver.rating >= minRating);
+      }
+      
+      // Sort results
+      switch (sortBy) {
+        case "price-asc":
+          trips.sort((a, b) => a.price - b.price)
+          break
+        case "price-desc":
+          trips.sort((a, b) => b.price - a.price)
+          break
+        case "departure-time":
+          trips.sort((a, b) => a.departureTime.localeCompare(b.departureTime))
+          break
+        case "rating":
+          trips.sort((a, b) => b.driver.rating - a.driver.rating)
+          break
+        case "recommended":
+        default:
+          // For recommended, use a combination of price and rating
+          trips.sort((a, b) => {
+            const ratingDiff = b.driver.rating - a.driver.rating
+            const priceDiff = a.price - b.price
+            return ratingDiff * 2 + priceDiff * 0.5
+          })
+      }
+      
+      return trips;
+    }
+    
+    // Fall back to mock data if no results from Firestore
+    return mockTrips.filter((trip) => {
+      let isMatch = true
 
-  // Filter trips
-  let filteredTrips = mockTrips.filter(
-    (trip) =>
-      trip.origin.toLowerCase().includes(origin.toLowerCase()) &&
-      trip.destination.toLowerCase().includes(destination.toLowerCase()) &&
-      (date ? trip.date === date : true),
-  )
+      if (origin && !trip.origin.toLowerCase().includes(origin.toLowerCase())) {
+        isMatch = false
+      }
 
-  // Apply price filter
-  if (minPrice !== undefined) {
-    filteredTrips = filteredTrips.filter((trip) => trip.price >= minPrice)
-  }
-  if (maxPrice !== undefined) {
-    filteredTrips = filteredTrips.filter((trip) => trip.price <= maxPrice)
-  }
+      if (destination && !trip.destination.toLowerCase().includes(destination.toLowerCase())) {
+        isMatch = false
+      }
 
-  // Apply departure time filter
-  if (minDepartureTime) {
-    filteredTrips = filteredTrips.filter((trip) => trip.departureTime >= minDepartureTime)
-  }
-  if (maxDepartureTime) {
-    filteredTrips = filteredTrips.filter((trip) => trip.departureTime <= maxDepartureTime)
-  }
+      if (date && trip.date !== date) {
+        isMatch = false
+      }
 
-  // Apply rating filter
-  if (minRating !== undefined) {
-    filteredTrips = filteredTrips.filter((trip) => trip.driver.rating >= minRating)
-  }
+      if (minPrice !== undefined && trip.price < minPrice) {
+        isMatch = false
+      }
 
-  // Sort trips
-  switch (sortBy) {
-    case "price_asc":
-      filteredTrips.sort((a, b) => a.price - b.price)
-      break
-    case "price_desc":
-      filteredTrips.sort((a, b) => b.price - a.price)
-      break
-    case "departure":
-      filteredTrips.sort((a, b) => (a.departureTime > b.departureTime ? 1 : -1))
-      break
-    case "rating":
-      filteredTrips.sort((a, b) => b.driver.rating - a.driver.rating)
-      break
-    default:
-      // Default sorting (recommended) - could be a combination of factors
-      break
-  }
+      if (maxPrice !== undefined && trip.price > maxPrice) {
+        isMatch = false
+      }
 
-  return filteredTrips
+      if (minDepartureTime && trip.departureTime < minDepartureTime) {
+        isMatch = false
+      }
+
+      if (maxDepartureTime && trip.departureTime > maxDepartureTime) {
+        isMatch = false
+      }
+
+      if (minRating !== undefined && trip.driver.rating < minRating) {
+        isMatch = false
+      }
+
+      return isMatch
+    }).sort((a, b) => {
+      switch (sortBy) {
+        case "price-asc":
+          return a.price - b.price
+        case "price-desc":
+          return b.price - a.price
+        case "departure-time":
+          return a.departureTime.localeCompare(b.departureTime)
+        case "rating":
+          return b.driver.rating - a.driver.rating
+        case "recommended":
+        default:
+          // For recommended, use a combination of price and rating
+          const ratingDiff = b.driver.rating - a.driver.rating
+          const priceDiff = a.price - b.price
+          return ratingDiff * 2 + priceDiff * 0.5
+      }
+    })
+  } catch (error) {
+    console.error("Error searching trips:", error);
+    // Fall back to mock data in case of error
+    return mockTrips;
+  }
 }
 
 // Mock function to get user profile
@@ -465,4 +596,47 @@ export async function getPopularTrips(): Promise<string[]> {
   // En un entorno real, esto obtendría los IDs de los viajes más populares de la base de datos
   // Por ahora, devolvemos los IDs de los viajes de ejemplo
   return mockTrips.map(trip => trip.id);
+}
+
+export async function saveTrip(tripData: Omit<Trip, 'id' | 'driver'> & { userId: string }): Promise<string> {
+  try {
+    // Get the user data for the driver
+    const userDoc = await getDoc(doc(db, "users", tripData.userId));
+    
+    if (!userDoc.exists()) {
+      throw new Error(`User with ID ${tripData.userId} not found`);
+    }
+    
+    const userData = userDoc.data();
+    const driver: Driver = {
+      id: tripData.userId,
+      name: userData.name || "Usuario",
+      avatar: userData.avatar || null,
+      rating: userData.rating || 0,
+      reviewCount: userData.reviewCount || 0,
+      memberSince: userData.memberSince || new Date().toLocaleDateString("es-AR", { month: 'long', year: 'numeric' }),
+      preferences: userData.preferences || [],
+    };
+    
+    if (userData.bio) {
+      driver.bio = userData.bio;
+    }
+    
+    // Convert stops array if needed
+    const stops = tripData.stops?.filter(stop => stop.location && stop.time) || [];
+
+    // Create a new trip document
+    const tripRef = await addDoc(collection(db, "trips"), {
+      ...tripData,
+      driver,
+      stops,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+    
+    return tripRef.id;
+  } catch (error) {
+    console.error("Error saving trip:", error);
+    throw error;
+  }
 }

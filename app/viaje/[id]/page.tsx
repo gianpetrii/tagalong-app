@@ -16,9 +16,10 @@ export async function generateStaticParams() {
   // Obtener IDs de viajes populares para pre-renderizar
   const tripIds = await getPopularTrips()
   
-  return tripIds.map(id => ({
+  // Add the nuevo-viaje-creado path
+  return [...tripIds.map(id => ({
     id: id,
-  }))
+  })), { id: 'nuevo-viaje-creado' }]
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
