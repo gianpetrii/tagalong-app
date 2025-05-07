@@ -31,6 +31,8 @@ interface AuthContextType {
   register: (email: string, password: string, name: string) => Promise<void>
   resetPassword: (email: string) => Promise<void>
   isLoading: boolean
+  setUser: React.Dispatch<React.SetStateAction<User | null>>
+  updateUserProfile: (userData: Partial<User>) => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -81,6 +83,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               phoneVerified: false,
               isOnline: true,
               badges: [],
+              carInfo: {
+                model: '',
+                color: '',
+                plate: ''
+              },
               createdAt: serverTimestamp(),
               lastLogin: serverTimestamp()
             };
@@ -150,6 +157,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         phoneVerified: false,
         isOnline: true,
         badges: [],
+        carInfo: {
+          model: '',
+          color: '',
+          plate: ''
+        },
         createdAt: serverTimestamp(),
         lastLogin: serverTimestamp()
       };
@@ -194,6 +206,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const updateUserProfile = async (userData: Partial<User>) => {
+    if (!user?.id) return
+
+    try {
+      const userRef = doc(db, 'users', user.id)
+      await updateDoc(userRef, userData)
+      
+      // Update local user state
+      setUser(prev => {
+        if (!prev) return null
+        return {
+          ...prev,
+          ...userData,
+          carInfo: userData.carInfo || prev.carInfo
+        }
+      })
+    } catch (error) {
+      console.error('Error updating user profile:', error)
+    }
+  }
+
   return (
     <AuthContext.Provider 
       value={{ 
@@ -204,7 +237,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         logout, 
         register, 
         resetPassword, 
-        isLoading 
+        isLoading,
+        setUser,
+        updateUserProfile
       }}
     >
       {children}

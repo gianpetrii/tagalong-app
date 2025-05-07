@@ -8,8 +8,10 @@ export interface Trip {
   duration: string
   price: number
   availableSeats: number
+  carBrand: string
   carModel: string
-  carColor: string
+  carYear?: string
+  carPlate?: string
   meetingPoint: string
   dropOffPoint: string
   driver: Driver
@@ -42,12 +44,15 @@ export interface User {
   rating: number
   reviewCount: number
   memberSince: string
-  bio?: string
-  isVerified: boolean
-  emailVerified: boolean
-  phoneVerified: boolean
-  isOnline?: boolean
-  badges?: string[]
+  phone?: string
+  about?: string
+  carInfo?: {
+    brand: string
+    model: string
+    year?: string
+    plate?: string
+    isActive: boolean
+  }
   createdAt?: any // Firestore timestamp
   lastLogin?: any // Firestore timestamp
   lastLogout?: any // Firestore timestamp

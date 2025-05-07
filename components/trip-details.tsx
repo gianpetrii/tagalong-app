@@ -3,6 +3,8 @@ import type { Trip } from "@/lib/types"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { formatTimeToDisplay } from "@/lib/utils"
+import { format } from "date-fns"
+import { es } from "date-fns/locale"
 
 export default function TripDetails({ trip }: { trip: Trip }) {
   return (
@@ -13,125 +15,112 @@ export default function TripDetails({ trip }: { trip: Trip }) {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="flex items-start justify-between">
           <div>
-            <div className="flex items-center mb-4">
-              <Calendar className="h-5 w-5 text-emerald-600 mr-2" />
-              <span className="text-muted-foreground">
-                {new Date(trip.date).toLocaleDateString("es-AR", {
-                  weekday: "long",
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                })}
-              </span>
-            </div>
-
-            <div className="flex items-center mb-4">
-              <Clock className="h-5 w-5 text-emerald-600 mr-2" />
-              <div>
-                <div className="font-medium">
-                  {formatTimeToDisplay(trip.departureTime)} → {formatTimeToDisplay(trip.arrivalTime)}
-                </div>
-                <div className="text-muted-foreground text-sm">Duración: {trip.duration}</div>
-              </div>
-            </div>
-
-            <div className="flex items-center mb-4">
-              <Users className="h-5 w-5 text-emerald-600 mr-2" />
-              <span className="text-muted-foreground">{trip.availableSeats} asientos disponibles</span>
-            </div>
+            <h2 className="text-2xl font-bold">{trip.origin} → {trip.destination}</h2>
+            <p className="text-muted-foreground">
+              {format(new Date(trip.date), "EEEE d 'de' MMMM", { locale: es })}
+            </p>
           </div>
+          <Badge variant="outline" className="text-lg px-4 py-1">
+            ${trip.price}
+          </Badge>
+        </div>
 
+        <div className="grid grid-cols-2 gap-4">
           <div>
-            <div className="flex items-center mb-4">
-              <Car className="h-5 w-5 text-emerald-600 mr-2" />
-              <div>
-                <div className="font-medium">{trip.carModel}</div>
-                <div className="text-muted-foreground text-sm">{trip.carColor}</div>
-              </div>
-            </div>
+            <div className="text-sm text-muted-foreground">Salida</div>
+            <div className="font-medium">{trip.departureTime}</div>
+          </div>
+          <div>
+            <div className="text-sm text-muted-foreground">Llegada</div>
+            <div className="font-medium">{trip.arrivalTime}</div>
+          </div>
+          <div>
+            <div className="text-sm text-muted-foreground">Duración</div>
+            <div className="font-medium">{trip.duration}</div>
+          </div>
+          <div>
+            <div className="text-sm text-muted-foreground">Asientos disponibles</div>
+            <div className="font-medium">{trip.availableSeats}</div>
+          </div>
+        </div>
 
-            <div className="flex items-center mb-4">
-              <div className="h-5 w-5 text-emerald-600 mr-2 flex items-center justify-center">$</div>
-              <div>
-                <div className="font-medium text-xl">${trip.price} por persona</div>
-                <div className="text-muted-foreground text-sm">Pago en efectivo al conductor</div>
-              </div>
+        <div className="space-y-2">
+          <h3 className="text-lg font-medium">Información del vehículo</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <div className="text-sm text-muted-foreground">Marca</div>
+              <div className="font-medium">{trip.carBrand}</div>
             </div>
-
-            {trip.features && trip.features.length > 0 && (
-              <div className="flex items-start mb-4">
-                <Info className="h-5 w-5 text-emerald-600 mr-2 mt-0.5" />
-                <div>
-                  <div className="font-medium mb-1">Características</div>
-                  <div className="flex flex-wrap gap-1">
-                    {trip.features.map((feature, index) => (
-                      <Badge key={index} variant="outline">
-                        {feature}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
+            <div>
+              <div className="text-sm text-muted-foreground">Modelo</div>
+              <div className="font-medium">{trip.carModel}</div>
+            </div>
+            {trip.carYear && (
+              <div>
+                <div className="text-sm text-muted-foreground">Año</div>
+                <div className="font-medium">{trip.carYear}</div>
+              </div>
+            )}
+            {trip.carPlate && (
+              <div>
+                <div className="text-sm text-muted-foreground">Patente</div>
+                <div className="font-medium">{trip.carPlate}</div>
               </div>
             )}
           </div>
         </div>
 
         <div className="border-t pt-6">
-          <h2 className="text-lg font-semibold mb-4">Detalles de la ruta</h2>
-
+          <h3 className="text-lg font-medium mb-4">Puntos de encuentro</h3>
           <div className="space-y-4">
-            <div className="flex">
-              <div className="mr-3 relative">
-                <div className="h-6 w-6 rounded-full bg-emerald-600 flex items-center justify-center text-white">
-                  <MapPin size={16} />
-                </div>
-                <div className="absolute top-6 bottom-0 left-1/2 w-0.5 -ml-px bg-muted"></div>
-              </div>
-              <div>
-                <div className="font-medium">{trip.origin}</div>
-                <div className="text-muted-foreground">
-                  {formatTimeToDisplay(trip.departureTime)} - Punto de encuentro: {trip.meetingPoint}
-                </div>
-              </div>
+            <div>
+              <div className="text-sm text-muted-foreground">Punto de encuentro</div>
+              <div className="font-medium">{trip.meetingPoint}</div>
             </div>
-
-            {trip.stops &&
-              trip.stops.map((stop, index) => (
-                <div key={index} className="flex">
-                  <div className="mr-3 relative">
-                    <div className="h-6 w-6 rounded-full bg-muted-foreground flex items-center justify-center text-white">
-                      <MapPin size={16} />
-                    </div>
-                    <div className="absolute top-6 bottom-0 left-1/2 w-0.5 -ml-px bg-muted"></div>
-                  </div>
-                  <div>
-                    <div className="font-medium">{stop.location}</div>
-                    <div className="text-muted-foreground">{formatTimeToDisplay(stop.time)}</div>
-                  </div>
-                </div>
-              ))}
-
-            <div className="flex">
-              <div className="mr-3">
-                <div className="h-6 w-6 rounded-full bg-emerald-600 flex items-center justify-center text-white">
-                  <MapPin size={16} />
-                </div>
-              </div>
-              <div>
-                <div className="font-medium">{trip.destination}</div>
-                <div className="text-muted-foreground">
-                  {formatTimeToDisplay(trip.arrivalTime)} - Punto de llegada: {trip.dropOffPoint}
-                </div>
-              </div>
+            <div>
+              <div className="text-sm text-muted-foreground">Punto de llegada</div>
+              <div className="font-medium">{trip.dropOffPoint}</div>
             </div>
           </div>
         </div>
 
+        {trip.stops && trip.stops.length > 0 && (
+          <div className="border-t pt-6">
+            <h3 className="text-lg font-medium mb-4">Paradas intermedias</h3>
+            <div className="space-y-4">
+              {trip.stops.map((stop, index) => (
+                <div key={index} className="flex items-center gap-4">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                    <MapPin className="h-4 w-4 text-primary" />
+                  </div>
+                  <div>
+                    <div className="font-medium">{stop.location}</div>
+                    <div className="text-sm text-muted-foreground">{stop.time}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {trip.features && trip.features.length > 0 && (
+          <div className="border-t pt-6">
+            <h3 className="text-lg font-medium mb-4">Características</h3>
+            <div className="flex flex-wrap gap-2">
+              {trip.features.map((feature, index) => (
+                <Badge key={index} variant="secondary">
+                  {feature}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        )}
+
         {trip.notes && (
           <div className="border-t pt-6">
-            <h2 className="text-lg font-semibold mb-2">Notas del conductor</h2>
+            <h3 className="text-lg font-medium mb-4">Notas adicionales</h3>
             <p className="text-muted-foreground">{trip.notes}</p>
           </div>
         )}

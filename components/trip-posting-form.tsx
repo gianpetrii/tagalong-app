@@ -1,8 +1,7 @@
 "use client"
 
 import type React from "react"
-
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { MapPin, Plus, Minus, Calendar, Clock, Car, DollarSign, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -18,7 +17,6 @@ import { es } from "date-fns/locale"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Checkbox } from "@/components/ui/checkbox"
 import { getPopularCities, saveTrip } from "@/lib/data"
-import { useEffect } from "react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { useAuth } from "@/context/auth-context"
@@ -45,6 +43,12 @@ export default function TripPostingForm() {
     luggage: false,
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [carInfo, setCarInfo] = useState({
+    brand: "",
+    model: "",
+    year: "",
+    plate: ""
+  })
 
   useEffect(() => {
     const loadCities = async () => {
@@ -53,7 +57,17 @@ export default function TripPostingForm() {
     }
 
     loadCities()
-  }, [])
+    
+    // Auto-populate car information from user profile if available
+    if (user?.carInfo) {
+      setCarInfo({
+        brand: user.carInfo.brand || "",
+        model: user.carInfo.model || "",
+        year: user.carInfo.year || "",
+        plate: user.carInfo.plate || ""
+      })
+    }
+  }, [user])
 
   const addStop = () => {
     setStops([...stops, { location: "", time: "" }])
@@ -132,8 +146,10 @@ export default function TripPostingForm() {
         duration: "2h 00m", // default duration
         price: Number(document.getElementById('price')?.getAttribute('value') || 0),
         availableSeats: Number(document.getElementById('seats')?.getAttribute('value') || 1),
-        carModel: (document.getElementById('carModel') as HTMLInputElement)?.value || "",
-        carColor: (document.getElementById('carColor') as HTMLInputElement)?.value || "",
+        carBrand: carInfo.brand,
+        carModel: carInfo.model,
+        carYear: carInfo.year || undefined,
+        carPlate: carInfo.plate || undefined,
         meetingPoint: (document.getElementById('meetingPoint') as HTMLInputElement)?.value || "",
         dropOffPoint: (document.getElementById('dropOffPoint') as HTMLInputElement)?.value || "",
         userId: user.id,
@@ -185,8 +201,7 @@ export default function TripPostingForm() {
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Importante</AlertTitle>
           <AlertDescription>
-            Al publicar un viaje, aceptas nuestros términos y condiciones. Asegúrate de proporcionar información
-            precisa.
+            Asegúrate de que toda la información sea correcta antes de publicar tu viaje.
           </AlertDescription>
         </Alert>
 
@@ -451,34 +466,44 @@ export default function TripPostingForm() {
             </div>
           </div>
 
-          <div>
-            <Label>Información del vehículo</Label>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium">Información del vehículo</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Car className="h-5 w-5 text-muted-foreground" />
-                  </div>
-                  <Input
-                    type="text"
-                    id="carModel"
-                    placeholder="Marca y modelo"
-                    className="pl-10 pr-3 py-2 text-gray-900 dark:text-gray-100"
-                    required
-                  />
-                </div>
-              </div>
-              <div>
+                <Label htmlFor="carBrand">Marca</Label>
                 <Input
-                  type="text"
-                  id="carColor"
-                  placeholder="Color"
-                  className="px-3 py-2"
-                  required
+                  id="carBrand"
+                  placeholder="Marca del vehículo"
+                  value={carInfo.brand}
+                  onChange={(e) => setCarInfo({ ...carInfo, brand: e.target.value })}
                 />
               </div>
               <div>
-                <Input type="text" placeholder="Patente (opcional)" className="px-3 py-2" />
+                <Label htmlFor="carModel">Modelo</Label>
+                <Input
+                  id="carModel"
+                  placeholder="Modelo del vehículo"
+                  value={carInfo.model}
+                  onChange={(e) => setCarInfo({ ...carInfo, model: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="carYear">Año (opcional)</Label>
+                <Input
+                  id="carYear"
+                  placeholder="Año del vehículo"
+                  value={carInfo.year}
+                  onChange={(e) => setCarInfo({ ...carInfo, year: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="carPlate">Patente (opcional)</Label>
+                <Input
+                  id="carPlate"
+                  placeholder="Patente del vehículo"
+                  value={carInfo.plate}
+                  onChange={(e) => setCarInfo({ ...carInfo, plate: e.target.value })}
+                />
               </div>
             </div>
           </div>

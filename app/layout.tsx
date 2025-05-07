@@ -16,6 +16,14 @@ export const metadata: Metadata = {
     "Conectamos conductores con pasajeros para compartir viajes en Argentina de manera económica, ecológica y social.",
   keywords: "viajes compartidos, carpooling, Argentina, compartir auto, viajes económicos",
   authors: [{ name: "Tag Along" }],
+  icons: {
+    icon: [
+      {
+        url: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%2310b981' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z'/%3E%3Ccircle cx='12' cy='10' r='3'/%3E%3C/svg%3E",
+        type: "image/svg+xml",
+      },
+    ],
+  },
   openGraph: {
     type: "website",
     locale: "es_AR",

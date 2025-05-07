@@ -14,8 +14,10 @@ const mockTrips: Trip[] = [
     duration: "4h 30m",
     price: 4500,
     availableSeats: 3,
-    carModel: "Toyota Corolla",
-    carColor: "Gris",
+    carBrand: "Toyota",
+    carModel: "Corolla",
+    carYear: "2020",
+    carPlate: "ABC123",
     meetingPoint: "Terminal de Retiro",
     dropOffPoint: "Terminal de Mar del Plata",
     driver: {
@@ -50,8 +52,10 @@ const mockTrips: Trip[] = [
     duration: "3h 30m",
     price: 3800,
     availableSeats: 2,
-    carModel: "Volkswagen Golf",
-    carColor: "Azul",
+    carBrand: "Volkswagen",
+    carModel: "Golf",
+    carYear: "2019",
+    carPlate: "XYZ789",
     meetingPoint: "Estación de servicio YPF (Av. Libertador)",
     dropOffPoint: "Plaza 25 de Mayo",
     driver: {
@@ -61,6 +65,7 @@ const mockTrips: Trip[] = [
       rating: 4.9,
       reviewCount: 42,
       memberSince: "Marzo 2023",
+      bio: "Profesional que viaja por trabajo. Disfruto de conversaciones interesantes y compartir experiencias.",
       preferences: ["No fumar", "No mascotas", "Música permitida", "Aire acondicionado"],
     },
     features: ["Aire acondicionado", "Música", "Equipaje grande"],
@@ -75,8 +80,10 @@ const mockTrips: Trip[] = [
     duration: "5h 30m",
     price: 5200,
     availableSeats: 4,
-    carModel: "Ford Ecosport",
-    carColor: "Rojo",
+    carBrand: "Ford",
+    carModel: "Ecosport",
+    carYear: "2021",
+    carPlate: "DEF456",
     meetingPoint: "Terminal de Córdoba",
     dropOffPoint: "Terminal de Mendoza",
     driver: {
@@ -113,12 +120,14 @@ const mockUsers: User[] = [
     rating: 4.8,
     reviewCount: 56,
     memberSince: "Enero 2023",
-    bio: "Viajo regularmente entre Buenos Aires y Mar del Plata por trabajo. Me gusta la música y las charlas amenas durante el viaje.",
-    isVerified: true,
-    emailVerified: true,
-    phoneVerified: true,
-    isOnline: true,
-    badges: ["Conductor Experto", "Viajero Frecuente"],
+    about: "Viajo regularmente entre Buenos Aires y Mar del Plata por trabajo. Me gusta la música y las charlas amenas durante el viaje.",
+    carInfo: {
+      brand: "Toyota",
+      model: "Corolla",
+      year: "2020",
+      plate: "ABC123",
+      isActive: true
+    }
   },
   {
     id: "102",
@@ -128,12 +137,14 @@ const mockUsers: User[] = [
     rating: 4.9,
     reviewCount: 42,
     memberSince: "Marzo 2023",
-    bio: "Profesional que viaja por trabajo. Disfruto de conversaciones interesantes y compartir experiencias.",
-    isVerified: true,
-    emailVerified: true,
-    phoneVerified: true,
-    isOnline: false,
-    badges: ["Conductora Verificada"],
+    about: "Profesional que viaja por trabajo. Disfruto de conversaciones interesantes y compartir experiencias.",
+    carInfo: {
+      brand: "Volkswagen",
+      model: "Golf",
+      year: "2019",
+      plate: "XYZ789",
+      isActive: true
+    }
   },
 ]
 
@@ -324,8 +335,10 @@ export async function getTrip(id: string): Promise<Trip | null> {
         duration: "3h 00m",
         price: 0,
         availableSeats: 0,
+        carBrand: "N/A",
         carModel: "N/A",
-        carColor: "N/A",
+        carYear: "N/A",
+        carPlate: "N/A",
         meetingPoint: "N/A",
         dropOffPoint: "N/A",
         driver: {
@@ -599,44 +612,163 @@ export async function getPopularTrips(): Promise<string[]> {
 }
 
 export async function saveTrip(tripData: Omit<Trip, 'id' | 'driver'> & { userId: string }): Promise<string> {
-  try {
-    // Get the user data for the driver
-    const userDoc = await getDoc(doc(db, "users", tripData.userId));
-    
-    if (!userDoc.exists()) {
-      throw new Error(`User with ID ${tripData.userId} not found`);
-    }
-    
-    const userData = userDoc.data();
-    const driver: Driver = {
-      id: tripData.userId,
-      name: userData.name || "Usuario",
-      avatar: userData.avatar || null,
-      rating: userData.rating || 0,
-      reviewCount: userData.reviewCount || 0,
-      memberSince: userData.memberSince || new Date().toLocaleDateString("es-AR", { month: 'long', year: 'numeric' }),
-      preferences: userData.preferences || [],
-    };
-    
-    if (userData.bio) {
-      driver.bio = userData.bio;
-    }
-    
-    // Convert stops array if needed
-    const stops = tripData.stops?.filter(stop => stop.location && stop.time) || [];
-
-    // Create a new trip document
-    const tripRef = await addDoc(collection(db, "trips"), {
-      ...tripData,
-      driver,
-      stops,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
-    
-    return tripRef.id;
-  } catch (error) {
-    console.error("Error saving trip:", error);
-    throw error;
+  const userRef = doc(db, "users", tripData.userId);
+  const userDoc = await getDoc(userRef);
+  
+  if (!userDoc.exists()) {
+    throw new Error("Usuario no encontrado");
   }
+  
+  const userData = userDoc.data() as User;
+  
+  const driver: Driver = {
+    id: userData.id,
+    name: userData.name,
+    avatar: userData.avatar,
+    rating: userData.rating,
+    reviewCount: userData.reviewCount,
+    memberSince: userData.memberSince,
+    preferences: [],
+    bio: userData.about || undefined
+  };
+  
+  const tripRef = await addDoc(collection(db, "trips"), {
+    ...tripData,
+    driver,
+    createdAt: serverTimestamp(),
+  });
+  
+  return tripRef.id;
 }
+
+export const sampleTrips: Trip[] = [
+  {
+    id: "1",
+    origin: "Buenos Aires",
+    destination: "Mar del Plata",
+    date: "2024-03-15",
+    departureTime: "08:00",
+    arrivalTime: "12:00",
+    duration: "4h 00m",
+    price: 2500,
+    availableSeats: 3,
+    carBrand: "Toyota",
+    carModel: "Corolla",
+    carYear: "2020",
+    carPlate: "ABC123",
+    meetingPoint: "Plaza Italia",
+    dropOffPoint: "Centro Comercial",
+    driver: {
+      id: "1",
+      name: "Juan Pérez",
+      avatar: null,
+      rating: 4.8,
+      reviewCount: 45,
+      memberSince: "2023-01-15",
+      bio: "Conductor experimentado",
+      preferences: ["Música", "Aire acondicionado"]
+    },
+    stops: [
+      { location: "La Plata", time: "09:30" }
+    ],
+    features: ["Aire acondicionado", "Música", "Equipaje grande"],
+    notes: "Viaje directo con una parada en La Plata"
+  },
+  {
+    id: "2",
+    origin: "Córdoba",
+    destination: "Rosario",
+    date: "2024-03-16",
+    departureTime: "10:00",
+    arrivalTime: "14:00",
+    duration: "4h 00m",
+    price: 2000,
+    availableSeats: 2,
+    carBrand: "Volkswagen",
+    carModel: "Golf",
+    carYear: "2019",
+    carPlate: "XYZ789",
+    meetingPoint: "Terminal de Ómnibus",
+    dropOffPoint: "Centro",
+    driver: {
+      id: "2",
+      name: "María García",
+      avatar: null,
+      rating: 4.9,
+      reviewCount: 32,
+      memberSince: "2023-02-20",
+      bio: "Conductora profesional",
+      preferences: ["Silencio", "Aire acondicionado"]
+    },
+    features: ["Aire acondicionado", "Mascotas permitidas"],
+    notes: "Viaje directo sin paradas"
+  },
+  {
+    id: "3",
+    origin: "Mendoza",
+    destination: "San Juan",
+    date: "2024-03-17",
+    departureTime: "09:00",
+    arrivalTime: "11:30",
+    duration: "2h 30m",
+    price: 1500,
+    availableSeats: 4,
+    carBrand: "Renault",
+    carModel: "Sandero",
+    carYear: "2021",
+    carPlate: "DEF456",
+    meetingPoint: "Plaza Independencia",
+    dropOffPoint: "Terminal",
+    driver: {
+      id: "3",
+      name: "Carlos López",
+      avatar: null,
+      rating: 4.7,
+      reviewCount: 28,
+      memberSince: "2023-03-10",
+      bio: "Conductor de confianza",
+      preferences: ["Música", "Conversación"]
+    },
+    features: ["Música", "Fumar permitido"],
+    notes: "Viaje directo"
+  }
+]
+
+export const sampleUsers: User[] = [
+  {
+    id: "1",
+    name: "Juan Pérez",
+    email: "juan@example.com",
+    avatar: null,
+    rating: 4.8,
+    reviewCount: 45,
+    memberSince: "2023-01-15",
+    phone: "+54 11 1234-5678",
+    about: "Conductor experimentado",
+    carInfo: {
+      brand: "Toyota",
+      model: "Corolla",
+      year: "2020",
+      plate: "ABC123",
+      isActive: true
+    }
+  },
+  {
+    id: "2",
+    name: "María García",
+    email: "maria@example.com",
+    avatar: null,
+    rating: 4.9,
+    reviewCount: 32,
+    memberSince: "2023-02-20",
+    phone: "+54 11 8765-4321",
+    about: "Conductora profesional",
+    carInfo: {
+      brand: "Volkswagen",
+      model: "Golf",
+      year: "2019",
+      plate: "XYZ789",
+      isActive: true
+    }
+  }
+]
