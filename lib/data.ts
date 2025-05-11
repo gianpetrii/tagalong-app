@@ -1,6 +1,6 @@
 import type { Trip, User, Review, UserStats, Driver } from "./types"
 import { db } from "./firebase"
-import { collection, doc, getDocs, getDoc, addDoc, query, where, limit, serverTimestamp } from "firebase/firestore"
+import { collection, doc, getDocs, getDoc, addDoc, query, where, limit, serverTimestamp, orderBy } from "firebase/firestore"
 
 // Mock data for trips
 const mockTrips: Trip[] = [
@@ -611,30 +611,9 @@ export async function getPopularTrips(): Promise<string[]> {
   return mockTrips.map(trip => trip.id);
 }
 
-export async function saveTrip(tripData: Omit<Trip, 'id' | 'driver'> & { userId: string }): Promise<string> {
-  const userRef = doc(db, "users", tripData.userId);
-  const userDoc = await getDoc(userRef);
-  
-  if (!userDoc.exists()) {
-    throw new Error("Usuario no encontrado");
-  }
-  
-  const userData = userDoc.data() as User;
-  
-  const driver: Driver = {
-    id: userData.id,
-    name: userData.name,
-    avatar: userData.avatar,
-    rating: userData.rating,
-    reviewCount: userData.reviewCount,
-    memberSince: userData.memberSince,
-    preferences: [],
-    bio: userData.about || undefined
-  };
-  
+export async function saveTrip(tripData: Omit<Trip, 'id'>): Promise<string> {
   const tripRef = await addDoc(collection(db, "trips"), {
     ...tripData,
-    driver,
     createdAt: serverTimestamp(),
   });
   
@@ -772,3 +751,104 @@ export const sampleUsers: User[] = [
     }
   }
 ]
+
+export async function getTrips({ origin, destination, date }: { origin: string; destination: string; date: string }) {
+  try {
+    const tripsRef = collection(db, "trips")
+    const q = query(
+      tripsRef,
+      where("origin", "==", origin),
+      where("destination", "==", destination),
+      where("date", "==", date)
+    )
+    const querySnapshot = await getDocs(q)
+    
+    // Obtener todos los viajes
+    const trips = await Promise.all(
+      querySnapshot.docs.map(async (docSnapshot) => {
+        const tripData = docSnapshot.data()
+        
+        // Obtener la información del conductor
+        if (tripData.driverId) {
+          const userRef = doc(db, "users", tripData.driverId)
+          const userSnapshot = await getDoc(userRef)
+          const driverData = userSnapshot.exists() ? userSnapshot.data() : null
+          
+          return {
+            id: docSnapshot.id,
+            ...tripData,
+            driver: driverData ? {
+              id: tripData.driverId,
+              name: driverData.name || "Conductor",
+              avatar: driverData.avatar,
+              rating: driverData.rating || 0,
+              reviewCount: driverData.reviewCount || 0,
+              memberSince: driverData.memberSince || ""
+            } : null
+          }
+        }
+        
+        return {
+          id: docSnapshot.id,
+          ...tripData,
+          driver: null
+        }
+      })
+    )
+    
+    return trips
+  } catch (error) {
+    console.error("Error fetching trips:", error)
+    return []
+  }
+}
+
+export async function getRecentTrips(): Promise<any[]> {
+  try {
+    const tripsRef = collection(db, "trips")
+    const q = query(
+      tripsRef,
+      orderBy("createdAt", "desc"),
+      limit(10)
+    )
+    const querySnapshot = await getDocs(q)
+    
+    // Obtener todos los viajes
+    const trips = await Promise.all(
+      querySnapshot.docs.map(async (docSnapshot) => {
+        const tripData = docSnapshot.data()
+        
+        // Obtener la información del conductor
+        if (tripData.driverId) {
+          const userRef = doc(db, "users", tripData.driverId)
+          const userSnapshot = await getDoc(userRef)
+          const driverData = userSnapshot.exists() ? userSnapshot.data() : null
+          
+          return {
+            id: docSnapshot.id,
+            ...tripData,
+            driver: driverData ? {
+              id: tripData.driverId,
+              name: driverData.name || "Conductor",
+              avatar: driverData.avatar,
+              rating: driverData.rating || 0,
+              reviewCount: driverData.reviewCount || 0,
+              memberSince: driverData.memberSince || ""
+            } : null
+          }
+        }
+        
+        return {
+          id: docSnapshot.id,
+          ...tripData,
+          driver: null
+        }
+      })
+    )
+    
+    return trips
+  } catch (error) {
+    console.error("Error fetching recent trips:", error)
+    return []
+  }
+}

@@ -10,19 +10,33 @@ export interface Trip {
   availableSeats: number
   carBrand: string
   carModel: string
-  carYear?: string
-  carPlate?: string
   meetingPoint: string
   dropOffPoint: string
-  driver: Driver
+  driverId: string
+  coordinates: {
+    origin: {
+      lat: number
+      lng: number
+    }
+    destination: {
+      lat: number
+      lng: number
+    }
+  }
+  carYear?: number
+  carPlate?: string
   stops?: Stop[]
-  features?: string[]
-  notes?: string
+  features: string[]
+  notes: string
 }
 
 export interface Stop {
   location: string
   time: string
+  coordinates?: {
+    lat: number
+    lng: number
+  }
 }
 
 export interface Driver {

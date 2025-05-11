@@ -14,6 +14,7 @@ import { format } from "date-fns"
 import { es } from "date-fns/locale"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { getPopularCities } from "@/lib/data"
+import LocationPicker from "@/components/location-picker"
 
 interface SearchFormProps {
   defaultValues?: {
@@ -27,177 +28,145 @@ export default function SearchForm({ defaultValues = {} }: SearchFormProps) {
   const router = useRouter()
   const { origin: defaultOrigin = "", destination: defaultDestination = "", date: defaultDate = "" } = defaultValues
 
-  const [origin, setOrigin] = useState(defaultOrigin)
-  const [destination, setDestination] = useState(defaultDestination)
+  const [originLocation, setOriginLocation] = useState<{ address: string; city: string; coordinates: { lat: number; lng: number } } | null>(null)
+  const [destinationLocation, setDestinationLocation] = useState<{ address: string; city: string; coordinates: { lat: number; lng: number } } | null>(null)
   const [date, setDate] = useState<Date | undefined>(defaultDate ? new Date(defaultDate) : undefined)
-  const [openOriginPopover, setOpenOriginPopover] = useState(false)
-  const [openDestinationPopover, setOpenDestinationPopover] = useState(false)
   const [openCalendar, setOpenCalendar] = useState(false)
-  const [cities, setCities] = useState<string[]>([])
-
-  useEffect(() => {
-    const loadCities = async () => {
-      const popularCities = await getPopularCities()
-      setCities(popularCities)
-    }
-
-    loadCities()
-  }, [])
+  const [minPrice, setMinPrice] = useState("")
+  const [maxPrice, setMaxPrice] = useState("")
+  const [minSeats, setMinSeats] = useState("")
+  const [departureFrom, setDepartureFrom] = useState("")
+  const [departureTo, setDepartureTo] = useState("")
+  const [minRating, setMinRating] = useState("")
+  const [features, setFeatures] = useState({
+    airConditioner: false,
+    music: false,
+    pets: false,
+    smoking: false,
+    luggage: false,
+  })
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
 
     const formattedDate = date ? format(date, "yyyy-MM-dd") : ""
-
-    router.push(
-      `/buscar?origen=${encodeURIComponent(origin)}&destino=${encodeURIComponent(destination)}&fecha=${encodeURIComponent(formattedDate)}`,
-    )
+    const params = new URLSearchParams()
+    params.set("origin", originLocation?.address || "")
+    params.set("destination", destinationLocation?.address || "")
+    params.set("date", formattedDate)
+    if (minPrice) params.set("minPrice", minPrice)
+    if (maxPrice) params.set("maxPrice", maxPrice)
+    if (minSeats) params.set("minSeats", minSeats)
+    if (departureFrom) params.set("departureFrom", departureFrom)
+    if (departureTo) params.set("departureTo", departureTo)
+    if (minRating) params.set("minRating", minRating)
+    Object.entries(features).forEach(([key, value]) => {
+      if (value) params.append("features", key)
+    })
+    router.push(`/buscar?${params.toString()}`)
   }
-
-  const filteredOriginCities = cities.filter((city) => city.toLowerCase().includes(origin.toLowerCase()))
-
-  const filteredDestinationCities = cities.filter((city) => city.toLowerCase().includes(destination.toLowerCase()))
 
   return (
     <div className="bg-card p-4 rounded-lg shadow-md">
       <h2 className="text-lg font-semibold mb-4">Modificar búsqueda</h2>
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <Label htmlFor="origin" className="block text-sm font-medium mb-1">
-            Origen
-          </Label>
-          <div className="relative">
-            <Popover open={openOriginPopover} onOpenChange={setOpenOriginPopover}>
-              <PopoverTrigger asChild>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <MapPin className="h-5 w-5 text-muted-foreground" />
-                  </div>
-                  <Input
-                    type="text"
-                    id="origin"
-                    placeholder="¿Desde dónde salís?"
-                    className="pl-10 pr-3 py-2 text-gray-900 dark:text-gray-100"
-                    value={origin}
-                    onChange={(e) => setOrigin(e.target.value)}
-                    required
-                  />
-                </div>
-              </PopoverTrigger>
-              <PopoverContent className="p-0" align="start">
-                <Command>
-                  <CommandInput placeholder="Buscar ciudad..." />
-                  <CommandList>
-                    <CommandEmpty>No se encontraron resultados.</CommandEmpty>
-                    <CommandGroup>
-                      {filteredOriginCities.map((city) => (
-                        <CommandItem
-                          key={city}
-                          onSelect={() => {
-                            setOrigin(city)
-                            setOpenOriginPopover(false)
-                          }}
-                        >
-                          <MapPin className="mr-2 h-4 w-4" />
-                          {city}
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <LocationPicker
+            label="Origen"
+            value={originLocation?.address || ""}
+            onChange={setOriginLocation}
+            placeholder="Ingresa la dirección de origen"
+          />
+
+          <LocationPicker
+            label="Destino"
+            value={destinationLocation?.address || ""}
+            onChange={setDestinationLocation}
+            placeholder="Ingresa la dirección de destino"
+          />
         </div>
 
         <div>
-          <Label htmlFor="destination" className="block text-sm font-medium mb-1">
-            Destino
-          </Label>
-          <div className="relative">
-            <Popover open={openDestinationPopover} onOpenChange={setOpenDestinationPopover}>
-              <PopoverTrigger asChild>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <MapPin className="h-5 w-5 text-muted-foreground" />
-                  </div>
-                  <Input
-                    type="text"
-                    id="destination"
-                    placeholder="¿A dónde vas?"
-                    className="pl-10 pr-3 py-2 text-gray-900 dark:text-gray-100"
-                    value={destination}
-                    onChange={(e) => setDestination(e.target.value)}
-                    required
-                  />
-                </div>
-              </PopoverTrigger>
-              <PopoverContent className="p-0" align="start">
-                <Command>
-                  <CommandInput placeholder="Buscar ciudad..." />
-                  <CommandList>
-                    <CommandEmpty>No se encontraron resultados.</CommandEmpty>
-                    <CommandGroup>
-                      {filteredDestinationCities.map((city) => (
-                        <CommandItem
-                          key={city}
-                          onSelect={() => {
-                            setDestination(city)
-                            setOpenDestinationPopover(false)
-                          }}
-                        >
-                          <MapPin className="mr-2 h-4 w-4" />
-                          {city}
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
-          </div>
+          <Label htmlFor="date">Fecha de viaje</Label>
+          <Popover open={openCalendar} onOpenChange={setOpenCalendar}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className="w-full justify-start text-left font-normal"
+                id="date"
+              >
+                <Calendar className="mr-2 h-4 w-4" />
+                {date ? format(date, "PPP", { locale: es }) : "Selecciona una fecha"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <CalendarComponent
+                mode="single"
+                selected={date}
+                onSelect={(date) => {
+                  setDate(date)
+                  setOpenCalendar(false)
+                }}
+                disabled={(date) => date < new Date()}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
         </div>
 
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="minPrice">Precio mínimo</Label>
+            <Input id="minPrice" type="number" min="0" value={minPrice} onChange={e => setMinPrice(e.target.value)} placeholder="$" />
+          </div>
+          <div>
+            <Label htmlFor="maxPrice">Precio máximo</Label>
+            <Input id="maxPrice" type="number" min="0" value={maxPrice} onChange={e => setMaxPrice(e.target.value)} placeholder="$" />
+          </div>
+          <div>
+            <Label htmlFor="minSeats">Asientos mínimos</Label>
+            <Input id="minSeats" type="number" min="1" value={minSeats} onChange={e => setMinSeats(e.target.value)} placeholder="1" />
+          </div>
+          <div>
+            <Label htmlFor="minRating">Calificación mínima</Label>
+            <Input id="minRating" type="number" min="1" max="5" step="0.1" value={minRating} onChange={e => setMinRating(e.target.value)} placeholder="Ej: 4.5" />
+          </div>
+          <div>
+            <Label htmlFor="departureFrom">Salida desde</Label>
+            <Input id="departureFrom" type="time" value={departureFrom} onChange={e => setDepartureFrom(e.target.value)} />
+          </div>
+          <div>
+            <Label htmlFor="departureTo">Salida hasta</Label>
+            <Input id="departureTo" type="time" value={departureTo} onChange={e => setDepartureTo(e.target.value)} />
+          </div>
+        </div>
         <div>
-          <Label htmlFor="date" className="block text-sm font-medium mb-1">
-            Fecha
-          </Label>
-          <div className="relative">
-            <Popover open={openCalendar} onOpenChange={setOpenCalendar}>
-              <PopoverTrigger asChild>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Calendar className="h-5 w-5 text-muted-foreground" />
-                  </div>
-                  <Input
-                    id="date"
-                    placeholder="Seleccionar fecha"
-                    className="pl-10 pr-3 py-2 text-gray-900 dark:text-gray-100"
-                    value={date ? format(date, "PPP", { locale: es }) : ""}
-                    readOnly
-                    required
-                  />
-                </div>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <CalendarComponent
-                  mode="single"
-                  selected={date}
-                  onSelect={(date) => {
-                    setDate(date)
-                    setOpenCalendar(false)
-                  }}
-                  initialFocus
-                  locale={es}
-                  fromDate={new Date()}
-                />
-              </PopoverContent>
-            </Popover>
+          <Label>Características del viaje</Label>
+          <div className="grid grid-cols-2 gap-2 mt-2">
+            <label className="flex items-center space-x-2">
+              <input type="checkbox" checked={features.airConditioner} onChange={e => setFeatures(f => ({ ...f, airConditioner: e.target.checked }))} />
+              <span>Aire acondicionado</span>
+            </label>
+            <label className="flex items-center space-x-2">
+              <input type="checkbox" checked={features.music} onChange={e => setFeatures(f => ({ ...f, music: e.target.checked }))} />
+              <span>Música</span>
+            </label>
+            <label className="flex items-center space-x-2">
+              <input type="checkbox" checked={features.pets} onChange={e => setFeatures(f => ({ ...f, pets: e.target.checked }))} />
+              <span>Mascotas</span>
+            </label>
+            <label className="flex items-center space-x-2">
+              <input type="checkbox" checked={features.smoking} onChange={e => setFeatures(f => ({ ...f, smoking: e.target.checked }))} />
+              <span>Fumar</span>
+            </label>
+            <label className="flex items-center space-x-2">
+              <input type="checkbox" checked={features.luggage} onChange={e => setFeatures(f => ({ ...f, luggage: e.target.checked }))} />
+              <span>Equipaje grande</span>
+            </label>
           </div>
         </div>
-
         <Button type="submit" className="w-full">
-          Buscar
+          Buscar viajes
         </Button>
       </form>
     </div>

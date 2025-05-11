@@ -25,7 +25,7 @@ export default function TripDetails({ trip }: { trip: Trip }) {
           <Badge variant="outline" className="text-lg px-4 py-1">
             ${trip.price}
           </Badge>
-        </div>
+            </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div>
@@ -36,15 +36,15 @@ export default function TripDetails({ trip }: { trip: Trip }) {
             <div className="text-sm text-muted-foreground">Llegada</div>
             <div className="font-medium">{trip.arrivalTime}</div>
           </div>
-          <div>
+              <div>
             <div className="text-sm text-muted-foreground">Duración</div>
             <div className="font-medium">{trip.duration}</div>
-          </div>
+                </div>
           <div>
             <div className="text-sm text-muted-foreground">Asientos disponibles</div>
             <div className="font-medium">{trip.availableSeats}</div>
-          </div>
-        </div>
+              </div>
+            </div>
 
         <div className="space-y-2">
           <h3 className="text-lg font-medium">Información del vehículo</h3>
@@ -53,9 +53,9 @@ export default function TripDetails({ trip }: { trip: Trip }) {
               <div className="text-sm text-muted-foreground">Marca</div>
               <div className="font-medium">{trip.carBrand}</div>
             </div>
-            <div>
+          <div>
               <div className="text-sm text-muted-foreground">Modelo</div>
-              <div className="font-medium">{trip.carModel}</div>
+                <div className="font-medium">{trip.carModel}</div>
             </div>
             {trip.carYear && (
               <div>
@@ -64,7 +64,7 @@ export default function TripDetails({ trip }: { trip: Trip }) {
               </div>
             )}
             {trip.carPlate && (
-              <div>
+                <div>
                 <div className="text-sm text-muted-foreground">Patente</div>
                 <div className="font-medium">{trip.carPlate}</div>
               </div>
@@ -78,13 +78,13 @@ export default function TripDetails({ trip }: { trip: Trip }) {
             <div>
               <div className="text-sm text-muted-foreground">Punto de encuentro</div>
               <div className="font-medium">{trip.meetingPoint}</div>
-            </div>
-            <div>
+              </div>
+              <div>
               <div className="text-sm text-muted-foreground">Punto de llegada</div>
               <div className="font-medium">{trip.dropOffPoint}</div>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
 
         {trip.stops && trip.stops.length > 0 && (
           <div className="border-t pt-6">
@@ -101,8 +101,8 @@ export default function TripDetails({ trip }: { trip: Trip }) {
                   </div>
                 </div>
               ))}
-            </div>
-          </div>
+                </div>
+              </div>
         )}
 
         {trip.features && trip.features.length > 0 && (

@@ -14,41 +14,24 @@ import { format } from "date-fns"
 import { es } from "date-fns/locale"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { getPopularCities } from "@/lib/data"
+import LocationPicker from "@/components/location-picker"
 
 export default function HeroSearch() {
   const router = useRouter()
-  const [origin, setOrigin] = useState("")
-  const [destination, setDestination] = useState("")
+  const [originLocation, setOriginLocation] = useState<{ address: string; city: string; coordinates: { lat: number; lng: number } } | null>(null)
+  const [destinationLocation, setDestinationLocation] = useState<{ address: string; city: string; coordinates: { lat: number; lng: number } } | null>(null)
   const [date, setDate] = useState<Date>()
-  const [openOriginPopover, setOpenOriginPopover] = useState(false)
-  const [openDestinationPopover, setOpenDestinationPopover] = useState(false)
   const [openCalendar, setOpenCalendar] = useState(false)
-  const [cities, setCities] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(false)
-
-  useEffect(() => {
-    const loadCities = async () => {
-      const popularCities = await getPopularCities()
-      setCities(popularCities)
-    }
-
-    loadCities()
-  }, [])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-
     const formattedDate = date ? format(date, "yyyy-MM-dd") : ""
-
     router.push(
-      `/buscar?origen=${encodeURIComponent(origin)}&destino=${encodeURIComponent(destination)}&fecha=${encodeURIComponent(formattedDate)}`,
+      `/buscar?origin=${encodeURIComponent(originLocation?.address || "")}&destination=${encodeURIComponent(destinationLocation?.address || "")}&date=${encodeURIComponent(formattedDate)}`
     )
   }
-
-  const filteredOriginCities = cities.filter((city) => city.toLowerCase().includes(origin.toLowerCase()))
-
-  const filteredDestinationCities = cities.filter((city) => city.toLowerCase().includes(destination.toLowerCase()))
 
   return (
     <div className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 text-white py-16 md:py-24">
@@ -63,102 +46,28 @@ export default function HeroSearch() {
         <div className="max-w-3xl mx-auto bg-white dark:bg-background rounded-lg shadow-lg p-6">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="relative">
+              <div className="flex flex-col">
                 <Label htmlFor="origin" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                   Origen
                 </Label>
-                <div className="relative">
-                  <Popover open={openOriginPopover} onOpenChange={setOpenOriginPopover}>
-                    <PopoverTrigger asChild>
-                      <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                          <MapPin className="h-5 w-5 text-gray-400" />
-                        </div>
-                        <Input
-                          type="text"
-                          id="origin"
-                          placeholder="¿Desde dónde salís?"
-                          className="pl-10 pr-3 py-2 text-gray-900 dark:text-gray-100"
-                          value={origin}
-                          onChange={(e) => setOrigin(e.target.value)}
-                          required
-                        />
-                      </div>
-                    </PopoverTrigger>
-                    <PopoverContent className="p-0" align="start">
-                      <Command>
-                        <CommandInput placeholder="Buscar ciudad..." />
-                        <CommandList>
-                          <CommandEmpty>No se encontraron resultados.</CommandEmpty>
-                          <CommandGroup>
-                            {filteredOriginCities.map((city) => (
-                              <CommandItem
-                                key={city}
-                                onSelect={() => {
-                                  setOrigin(city)
-                                  setOpenOriginPopover(false)
-                                }}
-                              >
-                                <MapPin className="mr-2 h-4 w-4" />
-                                {city}
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                </div>
+                <LocationPicker
+                  label=""
+                  value={originLocation?.address || ""}
+                  onChange={setOriginLocation}
+                  placeholder="¿Desde dónde salís?"
+                />
               </div>
-
-              <div className="relative">
+              <div className="flex flex-col">
                 <Label htmlFor="destination" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                   Destino
                 </Label>
-                <div className="relative">
-                  <Popover open={openDestinationPopover} onOpenChange={setOpenDestinationPopover}>
-                    <PopoverTrigger asChild>
-                      <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                          <MapPin className="h-5 w-5 text-gray-400" />
-                        </div>
-                        <Input
-                          type="text"
-                          id="destination"
-                          placeholder="¿A dónde vas?"
-                          className="pl-10 pr-3 py-2 text-gray-900 dark:text-gray-100"
-                          value={destination}
-                          onChange={(e) => setDestination(e.target.value)}
-                          required
-                        />
-                      </div>
-                    </PopoverTrigger>
-                    <PopoverContent className="p-0" align="start">
-                      <Command>
-                        <CommandInput placeholder="Buscar ciudad..." />
-                        <CommandList>
-                          <CommandEmpty>No se encontraron resultados.</CommandEmpty>
-                          <CommandGroup>
-                            {filteredDestinationCities.map((city) => (
-                              <CommandItem
-                                key={city}
-                                onSelect={() => {
-                                  setDestination(city)
-                                  setOpenDestinationPopover(false)
-                                }}
-                              >
-                                <MapPin className="mr-2 h-4 w-4" />
-                                {city}
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                </div>
+                <LocationPicker
+                  label=""
+                  value={destinationLocation?.address || ""}
+                  onChange={setDestinationLocation}
+                  placeholder="¿A dónde vas?"
+                />
               </div>
-
               <div className="relative">
                 <Label htmlFor="date" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                   Fecha

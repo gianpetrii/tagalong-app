@@ -20,15 +20,27 @@ import { getPopularCities, saveTrip } from "@/lib/data"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { useAuth } from "@/context/auth-context"
+import LocationPicker from "@/components/location-picker"
 
 export default function TripPostingForm() {
   const router = useRouter()
   const { toast } = useToast()
   const { user } = useAuth()
-  const [stops, setStops] = useState([{ location: "", time: "" }])
+  const [stops, setStops] = useState<Array<{
+    location: { address: string; city: string; coordinates: { lat: number; lng: number } }
+    time: string
+  }>>([{ location: { address: "", city: "", coordinates: { lat: 0, lng: 0 } }, time: "" }])
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [origin, setOrigin] = useState("")
-  const [destination, setDestination] = useState("")
+  const [originLocation, setOriginLocation] = useState<{
+    address: string
+    city: string
+    coordinates: { lat: number; lng: number }
+  } | null>(null)
+  const [destinationLocation, setDestinationLocation] = useState<{
+    address: string
+    city: string
+    coordinates: { lat: number; lng: number }
+  } | null>(null)
   const [date, setDate] = useState<Date>()
   const [departureTime, setDepartureTime] = useState("")
   const [openOriginPopover, setOpenOriginPopover] = useState(false)
@@ -70,7 +82,7 @@ export default function TripPostingForm() {
   }, [user])
 
   const addStop = () => {
-    setStops([...stops, { location: "", time: "" }])
+    setStops([...stops, { location: { address: "", city: "", coordinates: { lat: 0, lng: 0 } }, time: "" }])
   }
 
   const removeStop = (index: number) => {
@@ -88,17 +100,17 @@ export default function TripPostingForm() {
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
 
-    if (!origin) newErrors.origin = "El origen es obligatorio"
-    if (!destination) newErrors.destination = "El destino es obligatorio"
+    if (!originLocation?.city) newErrors.origin = "El origen es obligatorio"
+    if (!destinationLocation?.city) newErrors.destination = "El destino es obligatorio"
     if (!date) newErrors.date = "La fecha es obligatoria"
     if (!departureTime) newErrors.departureTime = "La hora de salida es obligatoria"
 
     // Validate stops
     stops.forEach((stop, index) => {
-      if (stop.location && !stop.time) {
+      if (stop.location.address && !stop.time) {
         newErrors[`stop_${index}_time`] = "La hora de la parada es obligatoria"
       }
-      if (!stop.location && stop.time) {
+      if (!stop.location.address && stop.time) {
         newErrors[`stop_${index}_location`] = "La ubicación de la parada es obligatoria"
       }
     })
@@ -138,8 +150,8 @@ export default function TripPostingForm() {
       
       // Prepare trip data
       const tripData = {
-        origin,
-        destination,
+        origin: originLocation?.city || "",
+        destination: destinationLocation?.city || "",
         date: date ? format(date, "yyyy-MM-dd") : "",
         departureTime,
         arrivalTime,
@@ -148,12 +160,22 @@ export default function TripPostingForm() {
         availableSeats: Number(document.getElementById('seats')?.getAttribute('value') || 1),
         carBrand: carInfo.brand,
         carModel: carInfo.model,
-        carYear: carInfo.year || undefined,
-        carPlate: carInfo.plate || undefined,
-        meetingPoint: (document.getElementById('meetingPoint') as HTMLInputElement)?.value || "",
-        dropOffPoint: (document.getElementById('dropOffPoint') as HTMLInputElement)?.value || "",
-        userId: user.id,
-        stops: stops.filter(stop => stop.location && stop.time),
+        meetingPoint: originLocation?.address || "",
+        dropOffPoint: destinationLocation?.address || "",
+        coordinates: {
+          origin: originLocation?.coordinates || { lat: 0, lng: 0 },
+          destination: destinationLocation?.coordinates || { lat: 0, lng: 0 }
+        },
+        // Campos opcionales
+        ...(carInfo.year && { carYear: parseInt(carInfo.year) }),
+        ...(carInfo.plate && { carPlate: carInfo.plate }),
+        stops: stops
+          .filter(stop => stop.location.address && stop.time)
+          .map(stop => ({
+            location: stop.location.address,
+            time: stop.time,
+            coordinates: stop.location.coordinates
+          })),
         features: Object.entries(features)
           .filter(([_, isEnabled]) => isEnabled)
           .map(([feature]) => {
@@ -167,11 +189,14 @@ export default function TripPostingForm() {
             }
           })
           .filter(Boolean),
-        notes: (document.getElementById('notes') as HTMLTextAreaElement)?.value || "",
+        notes: (document.getElementById('notes') as HTMLTextAreaElement)?.value || ""
       }
 
       // Save to Firestore
-      const tripId = await saveTrip(tripData)
+      const tripId = await saveTrip({
+        ...tripData,
+        driverId: user.id
+      })
       
       setIsSubmitting(false)
       toast({
@@ -190,9 +215,9 @@ export default function TripPostingForm() {
     }
   }
 
-  const filteredOriginCities = cities.filter((city) => city.toLowerCase().includes(origin.toLowerCase()))
+  const filteredOriginCities = cities.filter((city) => city.toLowerCase().includes(originLocation?.city?.toLowerCase() || ""))
 
-  const filteredDestinationCities = cities.filter((city) => city.toLowerCase().includes(destination.toLowerCase()))
+  const filteredDestinationCities = cities.filter((city) => city.toLowerCase().includes(destinationLocation?.city?.toLowerCase() || ""))
 
   return (
     <Card>
@@ -206,106 +231,20 @@ export default function TripPostingForm() {
         </Alert>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <Label htmlFor="origin" className={errors.origin ? "text-destructive" : ""}>
-                Origen
-              </Label>
-              <div className="relative">
-                <Popover open={openOriginPopover} onOpenChange={setOpenOriginPopover}>
-                  <PopoverTrigger asChild>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <MapPin className={`h-5 w-5 ${errors.origin ? "text-destructive" : "text-muted-foreground"}`} />
-                      </div>
-                      <Input
-                        type="text"
-                        id="origin"
-                        placeholder="Ciudad de origen"
-                        className={`pl-10 pr-3 py-2 ${errors.origin ? "border-destructive" : ""}`}
-                        value={origin}
-                        onChange={(e) => setOrigin(e.target.value)}
-                      />
-                    </div>
-                  </PopoverTrigger>
-                  <PopoverContent className="p-0" align="start">
-                    <Command>
-                      <CommandInput placeholder="Buscar ciudad..." />
-                      <CommandList>
-                        <CommandEmpty>No se encontraron resultados.</CommandEmpty>
-                        <CommandGroup>
-                          {filteredOriginCities.map((city) => (
-                            <CommandItem
-                              key={city}
-                              onSelect={() => {
-                                setOrigin(city)
-                                setOpenOriginPopover(false)
-                                setErrors({ ...errors, origin: "" })
-                              }}
-                            >
-                              <MapPin className="mr-2 h-4 w-4" />
-                              {city}
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-              </div>
-              {errors.origin && <p className="text-destructive text-sm mt-1">{errors.origin}</p>}
-            </div>
+          <div className="grid grid-cols-1 gap-6">
+            <LocationPicker
+              label="Origen"
+              value={originLocation?.address || ""}
+              onChange={setOriginLocation}
+              placeholder="Ingresa la dirección de origen"
+            />
 
-            <div>
-              <Label htmlFor="destination" className={errors.destination ? "text-destructive" : ""}>
-                Destino
-              </Label>
-              <div className="relative">
-                <Popover open={openDestinationPopover} onOpenChange={setOpenDestinationPopover}>
-                  <PopoverTrigger asChild>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <MapPin
-                          className={`h-5 w-5 ${errors.destination ? "text-destructive" : "text-muted-foreground"}`}
-                        />
-                      </div>
-                      <Input
-                        type="text"
-                        id="destination"
-                        placeholder="Ciudad de destino"
-                        className={`pl-10 pr-3 py-2 ${errors.destination ? "border-destructive" : ""}`}
-                        value={destination}
-                        onChange={(e) => setDestination(e.target.value)}
-                      />
-                    </div>
-                  </PopoverTrigger>
-                  <PopoverContent className="p-0" align="start">
-                    <Command>
-                      <CommandInput placeholder="Buscar ciudad..." />
-                      <CommandList>
-                        <CommandEmpty>No se encontraron resultados.</CommandEmpty>
-                        <CommandGroup>
-                          {filteredDestinationCities.map((city) => (
-                            <CommandItem
-                              key={city}
-                              onSelect={() => {
-                                setDestination(city)
-                                setOpenDestinationPopover(false)
-                                setErrors({ ...errors, destination: "" })
-                              }}
-                            >
-                              <MapPin className="mr-2 h-4 w-4" />
-                              {city}
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-              </div>
-              {errors.destination && <p className="text-destructive text-sm mt-1">{errors.destination}</p>}
-            </div>
+            <LocationPicker
+              label="Destino"
+              value={destinationLocation?.address || ""}
+              onChange={setDestinationLocation}
+              placeholder="Ingresa la dirección de destino"
+            />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -380,7 +319,7 @@ export default function TripPostingForm() {
                   <Input
                     type="text"
                     placeholder="Ciudad de parada"
-                    value={stop.location}
+                    value={stop.location.address}
                     onChange={(e) => updateStop(index, "location", e.target.value)}
                     className={errors[`stop_${index}_location`] ? "border-destructive" : ""}
                   />
@@ -469,7 +408,7 @@ export default function TripPostingForm() {
           <div className="space-y-4">
             <h3 className="text-lg font-medium">Información del vehículo</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
+          <div>
                 <Label htmlFor="carBrand">Marca</Label>
                 <Input
                   id="carBrand"
@@ -493,7 +432,12 @@ export default function TripPostingForm() {
                   id="carYear"
                   placeholder="Año del vehículo"
                   value={carInfo.year}
-                  onChange={(e) => setCarInfo({ ...carInfo, year: e.target.value })}
+                  onChange={(e) => {
+                    // Solo permitir números
+                    const value = e.target.value.replace(/[^0-9]/g, '')
+                    setCarInfo({ ...carInfo, year: value })
+                  }}
+                  maxLength={4}
                 />
               </div>
               <div>
@@ -502,7 +446,11 @@ export default function TripPostingForm() {
                   id="carPlate"
                   placeholder="Patente del vehículo"
                   value={carInfo.plate}
-                  onChange={(e) => setCarInfo({ ...carInfo, plate: e.target.value })}
+                  onChange={(e) => {
+                    // Convertir a mayúsculas
+                    const value = e.target.value.toUpperCase()
+                    setCarInfo({ ...carInfo, plate: value })
+                  }}
                 />
               </div>
             </div>
@@ -572,29 +520,6 @@ export default function TripPostingForm() {
               placeholder="Información adicional para los pasajeros..."
               className="px-3 py-2"
             />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <Label htmlFor="meetingPoint">Punto de encuentro</Label>
-              <Input
-                type="text"
-                id="meetingPoint"
-                placeholder="Dirección específica o punto de referencia"
-                className="px-3 py-2"
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="dropOffPoint">Punto de llegada</Label>
-              <Input
-                type="text"
-                id="dropOffPoint"
-                placeholder="Dirección específica o punto de referencia"
-                className="px-3 py-2"
-                required
-              />
-            </div>
           </div>
 
           <div className="flex justify-end">
