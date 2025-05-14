@@ -4,21 +4,21 @@ export interface Trip {
   destination: string
   date: string
   departureTime: string
-  arrivalTime: string
-  duration: string
+  arrivalTime?: string
+  duration?: string
   price: number
   availableSeats: number
-  carBrand: string
-  carModel: string
-  meetingPoint: string
-  dropOffPoint: string
-  driverId: string
-  coordinates: {
-    origin: {
+  carBrand?: string
+  carModel?: string
+  meetingPoint?: string
+  dropOffPoint?: string
+  driverId?: string
+  coordinates?: {
+    origin?: {
       lat: number
       lng: number
     }
-    destination: {
+    destination?: {
       lat: number
       lng: number
     }
@@ -26,8 +26,12 @@ export interface Trip {
   carYear?: number
   carPlate?: string
   stops?: Stop[]
-  features: string[]
-  notes: string
+  features?: string[]
+  notes?: string
+  status?: "upcoming" | "completed" | "canceled"
+  passengersCount?: number
+  // Para compatibilidad con código existente que usa driver
+  driver?: Driver
 }
 
 export interface Stop {
@@ -47,7 +51,7 @@ export interface Driver {
   reviewCount: number
   memberSince: string
   bio?: string
-  preferences: string[]
+  preferences?: string[]
 }
 
 export interface User {
@@ -59,7 +63,13 @@ export interface User {
   reviewCount: number
   memberSince: string
   phone?: string
+  bio?: string
   about?: string
+  isVerified?: boolean
+  emailVerified?: boolean
+  phoneVerified?: boolean
+  isOnline?: boolean
+  badges?: string[]
   carInfo?: {
     brand: string
     model: string

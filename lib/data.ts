@@ -1,6 +1,6 @@
 import type { Trip, User, Review, UserStats, Driver } from "./types"
 import { db } from "./firebase"
-import { collection, doc, getDocs, getDoc, addDoc, query, where, limit, serverTimestamp, orderBy } from "firebase/firestore"
+import { collection, doc, getDocs, getDoc, addDoc, query, where, limit, serverTimestamp, orderBy, updateDoc } from "firebase/firestore"
 
 // Mock data for trips
 const mockTrips: Trip[] = [
@@ -16,7 +16,7 @@ const mockTrips: Trip[] = [
     availableSeats: 3,
     carBrand: "Toyota",
     carModel: "Corolla",
-    carYear: "2020",
+    carYear: 2020,
     carPlate: "ABC123",
     meetingPoint: "Terminal de Retiro",
     dropOffPoint: "Terminal de Mar del Plata",
@@ -54,7 +54,7 @@ const mockTrips: Trip[] = [
     availableSeats: 2,
     carBrand: "Volkswagen",
     carModel: "Golf",
-    carYear: "2019",
+    carYear: 2019,
     carPlate: "XYZ789",
     meetingPoint: "Estación de servicio YPF (Av. Libertador)",
     dropOffPoint: "Plaza 25 de Mayo",
@@ -82,7 +82,7 @@ const mockTrips: Trip[] = [
     availableSeats: 4,
     carBrand: "Ford",
     carModel: "Ecosport",
-    carYear: "2021",
+    carYear: 2021,
     carPlate: "DEF456",
     meetingPoint: "Terminal de Córdoba",
     dropOffPoint: "Terminal de Mendoza",
@@ -337,7 +337,7 @@ export async function getTrip(id: string): Promise<Trip | null> {
         availableSeats: 0,
         carBrand: "N/A",
         carModel: "N/A",
-        carYear: "N/A",
+        carYear: 0,
         carPlate: "N/A",
         meetingPoint: "N/A",
         dropOffPoint: "N/A",
@@ -409,11 +409,15 @@ export async function searchTrips(
     
     if (!querySnapshot.empty) {
       // Get trips from Firestore
-      let trips: Trip[] = querySnapshot.docs.map(doc => {
+      let trips: any[] = querySnapshot.docs.map(doc => {
+        const data = doc.data();
         return {
           id: doc.id,
-          ...doc.data()
-        } as Trip;
+          ...data,
+          carYear: data.carYear ? Number(data.carYear) : undefined,
+          price: Number(data.price),
+          availableSeats: Number(data.availableSeats)
+        };
       });
       
       // Apply client-side filters for complex queries
@@ -433,8 +437,8 @@ export async function searchTrips(
         trips = trips.filter((trip) => trip.departureTime <= maxDepartureTime);
       }
       
-      if (minRating !== undefined) {
-        trips = trips.filter((trip) => trip.driver.rating >= minRating);
+      if (minRating !== undefined && trips[0].driver) {
+        trips = trips.filter((trip) => trip.driver && trip.driver.rating >= minRating);
       }
       
       // Sort results
@@ -449,16 +453,22 @@ export async function searchTrips(
           trips.sort((a, b) => a.departureTime.localeCompare(b.departureTime))
           break
         case "rating":
-          trips.sort((a, b) => b.driver.rating - a.driver.rating)
+          if (trips[0].driver) {
+            trips.sort((a, b) => (b.driver?.rating || 0) - (a.driver?.rating || 0))
+          }
           break
         case "recommended":
         default:
           // For recommended, use a combination of price and rating
-          trips.sort((a, b) => {
-            const ratingDiff = b.driver.rating - a.driver.rating
-            const priceDiff = a.price - b.price
-            return ratingDiff * 2 + priceDiff * 0.5
-          })
+          if (trips[0].driver) {
+            trips.sort((a, b) => {
+              const ratingDiff = (b.driver?.rating || 0) - (a.driver?.rating || 0)
+              const priceDiff = a.price - b.price
+              return ratingDiff * 2 + priceDiff * 0.5
+            })
+          } else {
+            trips.sort((a, b) => a.price - b.price)
+          }
       }
       
       return trips;
@@ -496,7 +506,7 @@ export async function searchTrips(
         isMatch = false
       }
 
-      if (minRating !== undefined && trip.driver.rating < minRating) {
+      if (minRating !== undefined && trip.driver && trip.driver.rating < minRating) {
         isMatch = false
       }
 
@@ -510,11 +520,11 @@ export async function searchTrips(
         case "departure-time":
           return a.departureTime.localeCompare(b.departureTime)
         case "rating":
-          return b.driver.rating - a.driver.rating
+          return (b.driver?.rating || 0) - (a.driver?.rating || 0)
         case "recommended":
         default:
           // For recommended, use a combination of price and rating
-          const ratingDiff = b.driver.rating - a.driver.rating
+          const ratingDiff = (b.driver?.rating || 0) - (a.driver?.rating || 0)
           const priceDiff = a.price - b.price
           return ratingDiff * 2 + priceDiff * 0.5
       }
@@ -556,7 +566,8 @@ export async function getUserTrips(userId: string): Promise<Trip[]> {
   // Simulate API delay
   await new Promise((resolve) => setTimeout(resolve, 600))
 
-  return mockTrips.filter((trip) => trip.driver.id === userId)
+  // Buscamos en los viajes mock aquellos donde el driver.id coincide con userId
+  return mockTrips.filter((trip) => trip.driver && trip.driver.id === userId)
 }
 
 // Mock function to get user stats
@@ -633,7 +644,7 @@ export const sampleTrips: Trip[] = [
     availableSeats: 3,
     carBrand: "Toyota",
     carModel: "Corolla",
-    carYear: "2020",
+    carYear: 2020,
     carPlate: "ABC123",
     meetingPoint: "Plaza Italia",
     dropOffPoint: "Centro Comercial",
@@ -665,7 +676,7 @@ export const sampleTrips: Trip[] = [
     availableSeats: 2,
     carBrand: "Volkswagen",
     carModel: "Golf",
-    carYear: "2019",
+    carYear: 2019,
     carPlate: "XYZ789",
     meetingPoint: "Terminal de Ómnibus",
     dropOffPoint: "Centro",
@@ -694,7 +705,7 @@ export const sampleTrips: Trip[] = [
     availableSeats: 4,
     carBrand: "Renault",
     carModel: "Sandero",
-    carYear: "2021",
+    carYear: 2021,
     carPlate: "DEF456",
     meetingPoint: "Plaza Independencia",
     dropOffPoint: "Terminal",
@@ -850,5 +861,230 @@ export async function getRecentTrips(): Promise<any[]> {
   } catch (error) {
     console.error("Error fetching recent trips:", error)
     return []
+  }
+}
+
+// Función para obtener viajes publicados por un usuario
+export async function getUserPublishedTrips(userId: string): Promise<any[]> {
+  try {
+    const tripsRef = collection(db, "trips");
+    // NOTA: Para habilitar el ordenamiento por createdAt, es necesario crear un índice compuesto
+    // Visita la consola de Firebase o usa el enlace que aparece en el error:
+    // https://console.firebase.google.com/v1/r/project/tagalong-app-9874b/firestore/indexes?create_composite=ClBwcm9qZWN0cy90YWdhbG9uZy1hcHAtOTg3NGIvZGF0YWJhc2VzLyhkZWZhdWx0KS9jb2xsZWN0aW9uR3JvdXBzL3RyaXBzL2luZGV4ZXMvXxABGgwKCGRyaXZlcklkEAEaDQoJY3JlYXRlZEF0EAIaDAoIX19uYW1lX18QAg
+    const q = query(
+      tripsRef,
+      where("driverId", "==", userId),
+      orderBy("createdAt", "desc")
+    );
+    
+    const querySnapshot = await getDocs(q);
+    
+    if (querySnapshot.empty) {
+      return [];
+    }
+    
+    // Transformar y determinar estado del viaje
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    return querySnapshot.docs.map(doc => {
+      const tripData = doc.data();
+      const tripDate = new Date(tripData.date);
+      
+      // Determinar estado
+      let status: "upcoming" | "completed" | "canceled" = "upcoming";
+      if (tripData.status === "canceled") {
+        status = "canceled";
+      } else if (tripDate < today) {
+        status = "completed";
+      }
+      
+      // Contar pasajeros (esto dependerá de cómo se estén almacenando las reservas)
+      // Aquí asumo que hay un campo bookings que es un array o un contador
+      const passengersCount = tripData.passengersCount || 0;
+      
+      return {
+        id: doc.id,
+        origin: tripData.origin,
+        destination: tripData.destination,
+        date: tripData.date,
+        departureTime: tripData.departureTime,
+        status,
+        price: Number(tripData.price),
+        availableSeats: Number(tripData.availableSeats),
+        passengersCount
+      };
+    });
+  } catch (error) {
+    console.error("Error obteniendo viajes publicados:", error);
+    return [];
+  }
+}
+
+// Función para obtener viajes reservados por un usuario
+export async function getUserBookedTrips(userId: string): Promise<any[]> {
+  try {
+    // Buscar en la colección de reservas (bookings)
+    const bookingsRef = collection(db, "bookings");
+    // Ya que puede haber problemas con los índices, primero intentamos sin ordenar
+    const bookingsQuery = query(
+      bookingsRef,
+      where("userId", "==", userId)
+    );
+    
+    const bookingsSnapshot = await getDocs(bookingsQuery);
+    
+    if (bookingsSnapshot.empty) {
+      return [];
+    }
+    
+    // Obtener detalles de cada viaje reservado
+    const bookedTrips = await Promise.all(
+      bookingsSnapshot.docs.map(async (bookingDoc) => {
+        const bookingData = bookingDoc.data();
+        const tripId = bookingData.tripId;
+        
+        // Obtener detalles del viaje
+        const tripDoc = await getDoc(doc(db, "trips", tripId));
+        
+        if (!tripDoc.exists()) {
+          return null;
+        }
+        
+        const tripData = tripDoc.data();
+        const tripDate = new Date(tripData.date);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        // Determinar estado
+        let status: "upcoming" | "completed" | "canceled" = "upcoming";
+        if (bookingData.status === "canceled" || tripData.status === "canceled") {
+          status = "canceled";
+        } else if (tripDate < today) {
+          status = "completed";
+        }
+        
+        return {
+          id: tripId,
+          origin: tripData.origin,
+          destination: tripData.destination,
+          date: tripData.date,
+          departureTime: tripData.departureTime,
+          status,
+          price: Number(tripData.price),
+          availableSeats: Number(tripData.availableSeats),
+          passengersCount: tripData.passengersCount || 0,
+          bookingId: bookingDoc.id,
+          bookingStatus: bookingData.status
+        };
+      })
+    );
+    
+    // Filtrar nulls (viajes que no se encontraron)
+    return bookedTrips.filter(trip => trip !== null);
+  } catch (error) {
+    console.error("Error obteniendo viajes reservados:", error);
+    return [];
+  }
+}
+
+// Función para guardar una reserva en Firestore
+export async function saveBooking(bookingData: {
+  tripId: string;
+  userId: string;
+  seats: number;
+  message: string;
+}): Promise<string> {
+  try {
+    // Ensure message is never undefined
+    const safeBookingData = {
+      ...bookingData,
+      message: bookingData.message || "",
+      status: "pending",
+      createdAt: serverTimestamp(),
+    };
+    
+    const bookingRef = await addDoc(collection(db, "bookings"), safeBookingData);
+    
+    // Update available seats in the trip
+    try {
+      const tripRef = doc(db, "trips", bookingData.tripId);
+      const tripDoc = await getDoc(tripRef);
+      
+      if (tripDoc.exists()) {
+        const tripData = tripDoc.data();
+        const currentSeats = typeof tripData.availableSeats === 'number' 
+          ? tripData.availableSeats 
+          : parseInt(tripData.availableSeats) || 0;
+        
+        // Ensure we don't get negative seats
+        const newAvailableSeats = Math.max(0, currentSeats - bookingData.seats);
+        
+        await updateDoc(tripRef, {
+          availableSeats: newAvailableSeats
+        });
+      }
+    } catch (error) {
+      console.error("Error updating available seats:", error);
+      // Continue with booking even if seat update fails
+    }
+    
+    return bookingRef.id;
+  } catch (error) {
+    console.error("Error al guardar la reserva:", error);
+    throw error;
+  }
+}
+
+// Función para obtener todos los IDs de viajes para rutas estáticas
+export async function getAllTripIds(): Promise<string[]> {
+  try {
+    // Obtener los IDs desde Firestore
+    const tripsRef = collection(db, "trips");
+    const querySnapshot = await getDocs(tripsRef);
+    
+    // Extraer los IDs de todos los viajes
+    const firestoreIds = querySnapshot.empty ? [] : querySnapshot.docs.map(doc => doc.id);
+    
+    // IDs de los viajes mock
+    const mockIds = mockTrips.map(trip => trip.id);
+    
+    // IDs de usuarios (para la ruta de perfil)
+    const mockUserIds = mockUsers.map(user => user.id);
+    
+    // Incluir IDs específicos que sabemos que necesitamos
+    const specificIds = ['nuevo-viaje-creado'];
+    
+    // Intentar incluir otros IDs posibles:
+    // 1. Todos los viajes populares
+    const popularTripIds = await getPopularTrips();
+    
+    // 2. Viajes recientes
+    let recentTrips = [];
+    try {
+      recentTrips = await getRecentTrips();
+    } catch (e) {
+      console.error("Error obteniendo viajes recientes:", e);
+    }
+    const recentTripIds = recentTrips.map((trip: any) => trip.id);
+    
+    // Combinar todos los IDs posibles
+    const allPossibleIds = [
+      ...firestoreIds,
+      ...mockIds,
+      ...popularTripIds,
+      ...recentTripIds,
+      ...specificIds
+    ];
+    
+    // Eliminar duplicados usando Set
+    const uniqueIds = [...new Set(allPossibleIds)];
+    
+    console.log(`Generadas ${uniqueIds.length} rutas estáticas para viajes`);
+    return uniqueIds;
+  } catch (error) {
+    console.error("Error obteniendo IDs de viajes:", error);
+    // En caso de error, devolver los IDs de datos mock
+    return [...mockTrips.map(trip => trip.id), 'nuevo-viaje-creado'];
   }
 }

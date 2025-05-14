@@ -13,6 +13,7 @@ import { useToast } from "@/components/ui/use-toast"
 import { useAuth } from "@/context/auth-context"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { saveBooking } from "@/lib/data"
 
 export default function BookingForm({ trip }: { trip: Trip }) {
   const { user } = useAuth()
@@ -21,20 +22,45 @@ export default function BookingForm({ trip }: { trip: Trip }) {
   const [message, setMessage] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
+    setError(null)
 
-    // Simulate API call
-    setTimeout(() => {
-      setIsSubmitting(false)
+    try {
+      if (!user) {
+        throw new Error("Debes iniciar sesión para reservar");
+      }
+
+      // Preparar datos de la reserva - con message como string vacío si no hay contenido
+      const bookingData = {
+        tripId: trip.id,
+        userId: user.id,
+        seats: parseInt(seats),
+        message: message.trim() || ""  // Usar string vacío en lugar de undefined
+      };
+
+      // Guardar la reserva en Firestore
+      await saveBooking(bookingData);
+
       setIsSuccess(true)
       toast({
         title: "Solicitud enviada",
         description: "Tu solicitud ha sido enviada al conductor. Recibirás una notificación cuando acepte tu reserva.",
       })
-    }, 1500)
+    } catch (err) {
+      console.error("Error al enviar la solicitud:", err);
+      setError("Ha ocurrido un error al procesar tu solicitud. Por favor, intenta de nuevo.");
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Ha ocurrido un error al procesar tu solicitud. Por favor, intenta de nuevo.",
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   if (isSuccess) {
@@ -72,6 +98,14 @@ export default function BookingForm({ trip }: { trip: Trip }) {
           </Alert>
         )}
 
+        {error && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
         <div className="mb-6">
           <div className="text-2xl font-bold text-emerald-600 mb-1">${trip.price} por persona</div>
           <div className="text-muted-foreground">Pago en efectivo al conductor</div>
@@ -85,11 +119,15 @@ export default function BookingForm({ trip }: { trip: Trip }) {
                 <SelectValue placeholder="Selecciona el número de asientos" />
               </SelectTrigger>
               <SelectContent>
-                {[...Array(trip.availableSeats)].map((_, i) => (
-                  <SelectItem key={i + 1} value={(i + 1).toString()}>
-                    {i + 1} {i === 0 ? "asiento" : "asientos"}
-                  </SelectItem>
-                ))}
+                {trip.availableSeats > 0 ? (
+                  [...Array(trip.availableSeats)].map((_, i) => (
+                    <SelectItem key={i + 1} value={(i + 1).toString()}>
+                      {i + 1} {i === 0 ? "asiento" : "asientos"}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <SelectItem value="0">No hay asientos disponibles</SelectItem>
+                )}
               </SelectContent>
             </Select>
           </div>
@@ -121,7 +159,7 @@ export default function BookingForm({ trip }: { trip: Trip }) {
             </div>
           </div>
 
-          <Button type="submit" disabled={isSubmitting || !user} className="w-full">
+          <Button type="submit" disabled={isSubmitting || !user || trip.availableSeats < 1} className="w-full">
             {isSubmitting ? "Enviando..." : "Solicitar reserva"}
           </Button>
         </form>

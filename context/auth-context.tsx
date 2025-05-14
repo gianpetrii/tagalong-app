@@ -22,6 +22,9 @@ import {
   serverTimestamp
 } from "firebase/firestore"
 
+// Session timeout in milliseconds (default 48 hours)
+const SESSION_TIMEOUT = 48 * 60 * 60 * 1000
+
 interface AuthContextType {
   user: User | null
   firebaseUser: AuthUser | null
@@ -41,6 +44,73 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [firebaseUser, setFirebaseUser] = useState<AuthUser | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [lastActivity, setLastActivity] = useState<number>(Date.now())
+
+  // Check for session timeout
+  useEffect(() => {
+    // Update lastActivity on user interaction
+    const updateLastActivity = () => {
+      setLastActivity(Date.now())
+      // Store last activity in session storage
+      sessionStorage.setItem('lastActivity', Date.now().toString())
+    }
+
+    // Add event listeners for user activity
+    window.addEventListener('click', updateLastActivity)
+    window.addEventListener('keypress', updateLastActivity)
+    window.addEventListener('scroll', updateLastActivity)
+    window.addEventListener('mousemove', updateLastActivity)
+
+    // Check for timeout periodically
+    const intervalId = setInterval(() => {
+      const storedLastActivity = sessionStorage.getItem('lastActivity')
+      const lastActivityTime = storedLastActivity ? parseInt(storedLastActivity) : lastActivity
+      
+      // If session has timed out, log out
+      if (Date.now() - lastActivityTime > SESSION_TIMEOUT && firebaseUser) {
+        logout()
+        .then(() => {
+          console.log('Session timed out. Logged out automatically.')
+        })
+        .catch(error => {
+          console.error('Error during automatic logout:', error)
+        })
+      }
+    }, 60000) // Check every minute
+
+    // Handle browser close/refresh
+    window.addEventListener('beforeunload', () => {
+      // Store last activity in localStorage on page close
+      localStorage.setItem('lastActivity', lastActivity.toString())
+    })
+
+    // On page load, check if there's previous activity stored
+    const checkPreviousSession = () => {
+      const storedLastActivity = localStorage.getItem('lastActivity')
+      
+      if (storedLastActivity) {
+        const lastActivityTime = parseInt(storedLastActivity)
+        
+        // If previous session has expired, clear any persisted auth state
+        if (Date.now() - lastActivityTime > SESSION_TIMEOUT) {
+          signOut(auth).catch(err => console.error('Error clearing expired session:', err))
+        }
+        
+        // Remove from localStorage after checking
+        localStorage.removeItem('lastActivity')
+      }
+    }
+    
+    checkPreviousSession()
+
+    return () => {
+      window.removeEventListener('click', updateLastActivity)
+      window.removeEventListener('keypress', updateLastActivity)
+      window.removeEventListener('scroll', updateLastActivity)
+      window.removeEventListener('mousemove', updateLastActivity)
+      clearInterval(intervalId)
+    }
+  }, [firebaseUser, lastActivity])
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (authUser) => {
@@ -84,9 +154,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               isOnline: true,
               badges: [],
               carInfo: {
+                brand: '',
                 model: '',
-                color: '',
-                plate: ''
+                plate: '',
+                isActive: false
               },
               createdAt: serverTimestamp(),
               lastLogin: serverTimestamp()
@@ -96,6 +167,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
           
           setUser(userProfile);
+          
+          // Reset activity timer on successful auth
+          setLastActivity(Date.now())
+          sessionStorage.setItem('lastActivity', Date.now().toString())
         } else {
           setFirebaseUser(null)
           setUser(null)
@@ -158,9 +233,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isOnline: true,
         badges: [],
         carInfo: {
+          brand: '',
           model: '',
-          color: '',
-          plate: ''
+          plate: '',
+          isActive: false
         },
         createdAt: serverTimestamp(),
         lastLogin: serverTimestamp()
@@ -198,6 +274,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           console.error("Error updating user status:", error);
         }
       }
+      
+      // Clear session storage
+      sessionStorage.removeItem('lastActivity')
       
       await signOut(auth)
     } catch (error) {
