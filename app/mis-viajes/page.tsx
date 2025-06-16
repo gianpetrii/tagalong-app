@@ -12,6 +12,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import Link from "next/link"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
+import { getUserPublishedTrips, getUserBookedTrips } from "@/lib/data"
 
 // Tipos para los viajes
 type TripStatus = "upcoming" | "completed" | "canceled"
@@ -28,68 +29,6 @@ interface Trip {
   passengersCount: number
 }
 
-// Datos de ejemplo
-const mockPublishedTrips: Trip[] = [
-  {
-    id: "pub1",
-    origin: "Buenos Aires",
-    destination: "Mar del Plata",
-    date: "2025-06-15",
-    departureTime: "08:00",
-    status: "upcoming",
-    price: 4500,
-    availableSeats: 3,
-    passengersCount: 1,
-  },
-  {
-    id: "pub2",
-    origin: "Buenos Aires",
-    destination: "Rosario",
-    date: "2025-06-10",
-    departureTime: "10:00",
-    status: "upcoming",
-    price: 3800,
-    availableSeats: 2,
-    passengersCount: 2,
-  },
-  {
-    id: "pub3",
-    origin: "Córdoba",
-    destination: "Buenos Aires",
-    date: "2025-05-05",
-    departureTime: "07:30",
-    status: "completed",
-    price: 5200,
-    availableSeats: 0,
-    passengersCount: 4,
-  },
-]
-
-const mockBookedTrips: Trip[] = [
-  {
-    id: "book1",
-    origin: "La Plata",
-    destination: "Buenos Aires",
-    date: "2025-06-20",
-    departureTime: "09:15",
-    status: "upcoming",
-    price: 1800,
-    availableSeats: 2,
-    passengersCount: 2,
-  },
-  {
-    id: "book2",
-    origin: "Buenos Aires",
-    destination: "Bahía Blanca",
-    date: "2025-04-10",
-    departureTime: "07:00",
-    status: "completed",
-    price: 6200,
-    availableSeats: 0,
-    passengersCount: 3,
-  },
-]
-
 export default function MyTripsPage() {
   const { user, isLoading } = useAuth()
   const router = useRouter()
@@ -97,16 +36,39 @@ export default function MyTripsPage() {
   const [bookedTrips, setBookedTrips] = useState<Trip[]>([])
   const [activeTab, setActiveTab] = useState<"published" | "booked">("published")
   const [statusFilter, setStatusFilter] = useState<TripStatus | "all">("all")
+  const [isLoadingTrips, setIsLoadingTrips] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     // Si no hay usuario autenticado, redirigir al login
     if (!isLoading && !user) {
       router.push("/login")
+      return
     }
 
-    // Cargar viajes (en una implementación real, esto sería una llamada a Firebase)
-    setPublishedTrips(mockPublishedTrips)
-    setBookedTrips(mockBookedTrips)
+    if (user) {
+      const fetchTrips = async () => {
+        setIsLoadingTrips(true)
+        setError(null)
+        
+        try {
+          // Cargar viajes publicados
+          const publishedData = await getUserPublishedTrips(user.id)
+          setPublishedTrips(publishedData)
+          
+          // Cargar viajes reservados
+          const bookedData = await getUserBookedTrips(user.id)
+          setBookedTrips(bookedData)
+        } catch (err) {
+          console.error("Error al cargar viajes:", err)
+          setError("Ocurrió un error al cargar tus viajes. Intenta de nuevo más tarde.")
+        } finally {
+          setIsLoadingTrips(false)
+        }
+      }
+      
+      fetchTrips()
+    }
   }, [user, isLoading, router])
 
   if (isLoading || !user) {
@@ -201,6 +163,14 @@ export default function MyTripsPage() {
           </Link>
         </div>
 
+        {error && (
+          <Alert variant="destructive" className="mb-6">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
         <div className="mb-6">
           <Tabs 
             defaultValue="published" 
@@ -251,7 +221,9 @@ export default function MyTripsPage() {
             </div>
 
             <TabsContent value="published">
-              {filteredPublishedTrips.length > 0 ? (
+              {isLoadingTrips ? (
+                <div className="text-center py-8">Cargando viajes publicados...</div>
+              ) : filteredPublishedTrips.length > 0 ? (
                 filteredPublishedTrips.map(trip => renderTripCard(trip, true))
               ) : (
                 <div className="text-center py-12">
@@ -271,7 +243,9 @@ export default function MyTripsPage() {
             </TabsContent>
 
             <TabsContent value="booked">
-              {filteredBookedTrips.length > 0 ? (
+              {isLoadingTrips ? (
+                <div className="text-center py-8">Cargando viajes reservados...</div>
+              ) : filteredBookedTrips.length > 0 ? (
                 filteredBookedTrips.map(trip => renderTripCard(trip, false))
               ) : (
                 <div className="text-center py-12">

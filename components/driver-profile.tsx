@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 
-export default function DriverProfile({ driver }: { driver: Driver }) {
+export default function DriverProfile({ driver }: { driver: any }) {
   return (
     <Card>
       <CardHeader>
@@ -32,10 +32,10 @@ export default function DriverProfile({ driver }: { driver: Driver }) {
             <div className="flex items-center">
               <Star size={16} className="text-yellow-500 fill-yellow-500 mr-1" />
               <span className="text-muted-foreground">
-                {driver.rating} · {driver.reviewCount} opiniones
+                {driver.rating || 'N/A'} · {driver.reviewCount || 0} opiniones
               </span>
             </div>
-            <div className="text-muted-foreground text-sm">Miembro desde {driver.memberSince}</div>
+            <div className="text-muted-foreground text-sm">Miembro desde {driver.memberSince || 'N/A'}</div>
           </div>
         </div>
 
@@ -61,16 +61,18 @@ export default function DriverProfile({ driver }: { driver: Driver }) {
           </div>
         )}
 
+        {driver.preferences && driver.preferences.length > 0 && (
         <div className="mb-6">
           <h3 className="font-medium mb-2">Preferencias de viaje</h3>
           <div className="flex flex-wrap gap-1">
-            {driver.preferences.map((preference, index) => (
+              {driver.preferences.map((preference: string, index: number) => (
               <Badge key={index} variant="outline">
                 {preference}
               </Badge>
             ))}
           </div>
         </div>
+        )}
 
         <Button asChild variant="outline" className="w-full">
           <Link href={`/perfil/${driver.id}`}>

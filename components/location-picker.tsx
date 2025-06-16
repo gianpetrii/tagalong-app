@@ -25,9 +25,14 @@ interface LocationPickerProps {
 }
 
 export default function LocationPicker({ label, value, onChange, placeholder }: LocationPickerProps) {
-  const [searchValue, setSearchValue] = useState(value)
+  const [searchValue, setSearchValue] = useState(value || "")
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  // Update searchValue when value prop changes
+  useEffect(() => {
+    setSearchValue(value || "")
+  }, [value])
 
   const { isLoaded } = useJsApiLoader({
     id: "google-map-script",
@@ -53,8 +58,13 @@ export default function LocationPicker({ label, value, onChange, placeholder }: 
           }
         }
 
+        const fullAddress = place.formatted_address || ""
+        
+        // Update the search value to show the full address
+        setSearchValue(fullAddress)
+
         onChange({
-          address: place.formatted_address || "",
+          address: fullAddress,
           city,
           coordinates: { lat, lng },
         })

@@ -3,7 +3,7 @@
 import type React from "react"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { MapPin, Plus, Minus, Calendar, Clock, Car, DollarSign, AlertCircle } from "lucide-react"
+import { MapPin, Calendar, Clock, Car, DollarSign, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -14,7 +14,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar as CalendarComponent } from "@/components/ui/calendar"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Checkbox } from "@/components/ui/checkbox"
 import { getPopularCities, saveTrip } from "@/lib/data"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -26,10 +25,6 @@ export default function TripPostingForm() {
   const router = useRouter()
   const { toast } = useToast()
   const { user } = useAuth()
-  const [stops, setStops] = useState<Array<{
-    location: { address: string; city: string; coordinates: { lat: number; lng: number } }
-    time: string
-  }>>([{ location: { address: "", city: "", coordinates: { lat: 0, lng: 0 } }, time: "" }])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [originLocation, setOriginLocation] = useState<{
     address: string
@@ -43,8 +38,8 @@ export default function TripPostingForm() {
   } | null>(null)
   const [date, setDate] = useState<Date>()
   const [departureTime, setDepartureTime] = useState("")
-  const [openOriginPopover, setOpenOriginPopover] = useState(false)
-  const [openDestinationPopover, setOpenDestinationPopover] = useState(false)
+  const [availableSeats, setAvailableSeats] = useState("3")
+  const [price, setPrice] = useState("")
   const [openCalendar, setOpenCalendar] = useState(false)
   const [cities, setCities] = useState<string[]>([])
   const [features, setFeatures] = useState({
@@ -61,6 +56,7 @@ export default function TripPostingForm() {
     year: "",
     plate: ""
   })
+  const [notes, setNotes] = useState("")
 
   useEffect(() => {
     const loadCities = async () => {
@@ -81,22 +77,6 @@ export default function TripPostingForm() {
     }
   }, [user])
 
-  const addStop = () => {
-    setStops([...stops, { location: { address: "", city: "", coordinates: { lat: 0, lng: 0 } }, time: "" }])
-  }
-
-  const removeStop = (index: number) => {
-    const newStops = [...stops]
-    newStops.splice(index, 1)
-    setStops(newStops)
-  }
-
-  const updateStop = (index: number, field: "location" | "time", value: string) => {
-    const newStops = [...stops]
-    newStops[index][field] = value
-    setStops(newStops)
-  }
-
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
 
@@ -104,16 +84,7 @@ export default function TripPostingForm() {
     if (!destinationLocation?.city) newErrors.destination = "El destino es obligatorio"
     if (!date) newErrors.date = "La fecha es obligatoria"
     if (!departureTime) newErrors.departureTime = "La hora de salida es obligatoria"
-
-    // Validate stops
-    stops.forEach((stop, index) => {
-      if (stop.location.address && !stop.time) {
-        newErrors[`stop_${index}_time`] = "La hora de la parada es obligatoria"
-      }
-      if (!stop.location.address && stop.time) {
-        newErrors[`stop_${index}_location`] = "La ubicación de la parada es obligatoria"
-      }
-    })
+    if (!price || parseFloat(price) <= 0) newErrors.price = "El precio debe ser mayor a 0"
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
@@ -156,8 +127,8 @@ export default function TripPostingForm() {
         departureTime,
         arrivalTime,
         duration: "2h 00m", // default duration
-        price: Number(document.getElementById('price')?.getAttribute('value') || 0),
-        availableSeats: Number(document.getElementById('seats')?.getAttribute('value') || 1),
+        price: parseFloat(price),
+        availableSeats: parseInt(availableSeats),
         carBrand: carInfo.brand,
         carModel: carInfo.model,
         meetingPoint: originLocation?.address || "",
@@ -169,13 +140,7 @@ export default function TripPostingForm() {
         // Campos opcionales
         ...(carInfo.year && { carYear: parseInt(carInfo.year) }),
         ...(carInfo.plate && { carPlate: carInfo.plate }),
-        stops: stops
-          .filter(stop => stop.location.address && stop.time)
-          .map(stop => ({
-            location: stop.location.address,
-            time: stop.time,
-            coordinates: stop.location.coordinates
-          })),
+        stops: [], // Ya no hay paradas
         features: Object.entries(features)
           .filter(([_, isEnabled]) => isEnabled)
           .map(([feature]) => {
@@ -189,7 +154,7 @@ export default function TripPostingForm() {
             }
           })
           .filter(Boolean),
-        notes: (document.getElementById('notes') as HTMLTextAreaElement)?.value || ""
+        notes: notes
       }
 
       // Save to Firestore
@@ -215,10 +180,6 @@ export default function TripPostingForm() {
     }
   }
 
-  const filteredOriginCities = cities.filter((city) => city.toLowerCase().includes(originLocation?.city?.toLowerCase() || ""))
-
-  const filteredDestinationCities = cities.filter((city) => city.toLowerCase().includes(destinationLocation?.city?.toLowerCase() || ""))
-
   return (
     <Card>
       <CardContent className="pt-6">
@@ -238,6 +199,7 @@ export default function TripPostingForm() {
               onChange={setOriginLocation}
               placeholder="Ingresa la dirección de origen"
             />
+            {errors.origin && <p className="text-destructive text-sm mt-1">{errors.origin}</p>}
 
             <LocationPicker
               label="Destino"
@@ -245,6 +207,7 @@ export default function TripPostingForm() {
               onChange={setDestinationLocation}
               placeholder="Ingresa la dirección de destino"
             />
+            {errors.destination && <p className="text-destructive text-sm mt-1">{errors.destination}</p>}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -262,7 +225,7 @@ export default function TripPostingForm() {
                       <Input
                         id="date"
                         placeholder="Seleccionar fecha"
-                        className={`pl-10 pr-3 py-2 ${errors.date ? "border-destructive" : ""}`}
+                        className={`pl-10 pr-3 py-2 cursor-pointer ${errors.date ? "border-destructive" : ""}`}
                         value={date ? format(date, "PPP", { locale: es }) : ""}
                         readOnly
                       />
@@ -310,56 +273,10 @@ export default function TripPostingForm() {
             </div>
           </div>
 
-          <div>
-            <Label className="block mb-1">Paradas (opcional)</Label>
-
-            {stops.map((stop, index) => (
-              <div key={index} className="flex items-center space-x-2 mb-2">
-                <div className="flex-grow">
-                  <Input
-                    type="text"
-                    placeholder="Ciudad de parada"
-                    value={stop.location.address}
-                    onChange={(e) => updateStop(index, "location", e.target.value)}
-                    className={errors[`stop_${index}_location`] ? "border-destructive" : ""}
-                  />
-                  {errors[`stop_${index}_location`] && (
-                    <p className="text-destructive text-sm mt-1">{errors[`stop_${index}_location`]}</p>
-                  )}
-                </div>
-                <div className="w-24">
-                  <Input
-                    type="time"
-                    value={stop.time}
-                    onChange={(e) => updateStop(index, "time", e.target.value)}
-                    className={errors[`stop_${index}_time`] ? "border-destructive" : ""}
-                  />
-                  {errors[`stop_${index}_time`] && (
-                    <p className="text-destructive text-sm mt-1">{errors[`stop_${index}_time`]}</p>
-                  )}
-                </div>
-                <Button
-                  type="button"
-                  onClick={() => removeStop(index)}
-                  variant="outline"
-                  size="icon"
-                  className="flex-shrink-0"
-                >
-                  <Minus size={16} />
-                </Button>
-              </div>
-            ))}
-
-            <Button type="button" onClick={addStop} variant="outline" size="sm" className="mt-2">
-              <Plus size={16} className="mr-1" />
-              Agregar parada
-            </Button>
-          </div>
-
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
               <Label htmlFor="seats">Asientos disponibles</Label>
-              <Select defaultValue="3">
+              <Select value={availableSeats} onValueChange={setAvailableSeats}>
                 <SelectTrigger id="seats">
                   <SelectValue placeholder="Selecciona el número de asientos" />
                 </SelectTrigger>
@@ -374,7 +291,9 @@ export default function TripPostingForm() {
             </div>
 
             <div>
-              <Label htmlFor="price">Precio por asiento</Label>
+              <Label htmlFor="price" className={errors.price ? "text-destructive" : ""}>
+                Precio por asiento
+              </Label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <DollarSign className="h-5 w-5 text-muted-foreground" />
@@ -385,10 +304,16 @@ export default function TripPostingForm() {
                   min="1"
                   step="0.01"
                   placeholder="0.00"
-                  className="pl-10 pr-3 py-2 text-gray-900 dark:text-gray-100"
+                  className={`pl-10 pr-3 py-2 text-gray-900 dark:text-gray-100 ${errors.price ? "border-destructive" : ""}`}
+                  value={price}
+                  onChange={(e) => {
+                    setPrice(e.target.value)
+                    setErrors({ ...errors, price: "" })
+                  }}
                   required
                 />
               </div>
+              {errors.price && <p className="text-destructive text-sm mt-1">{errors.price}</p>}
             </div>
 
             <div>
@@ -408,7 +333,7 @@ export default function TripPostingForm() {
           <div className="space-y-4">
             <h3 className="text-lg font-medium">Información del vehículo</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
+              <div>
                 <Label htmlFor="carBrand">Marca</Label>
                 <Input
                   id="carBrand"
@@ -519,6 +444,8 @@ export default function TripPostingForm() {
               rows={3}
               placeholder="Información adicional para los pasajeros..."
               className="px-3 py-2"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
             />
           </div>
 

@@ -14,6 +14,7 @@ const nextConfig = {
   trailingSlash: true,
   experimental: {
     appDocumentPreloading: false,
+    missingSuspenseWithCSRBailout: false
   },
   webpack: (config, { isServer }) => {
     config.watchOptions = {
