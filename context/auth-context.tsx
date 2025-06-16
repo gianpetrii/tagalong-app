@@ -12,7 +12,7 @@ import {
   signInWithPopup,
   sendPasswordResetEmail
 } from "firebase/auth"
-import { auth, db } from "@/lib/firebase"
+import { auth, db, configureAuthPersistence } from "@/lib/firebase"
 import type { User } from "@/lib/types"
 import { 
   doc, 
@@ -22,14 +22,11 @@ import {
   serverTimestamp
 } from "firebase/firestore"
 
-// Session timeout in milliseconds (default 48 hours)
-const SESSION_TIMEOUT = 48 * 60 * 60 * 1000
-
 interface AuthContextType {
   user: User | null
   firebaseUser: AuthUser | null
-  login: (email: string, password: string) => Promise<void>
-  loginWithGoogle: () => Promise<void>
+  login: (email: string, password: string, rememberMe?: boolean) => Promise<void>
+  loginWithGoogle: (rememberMe?: boolean) => Promise<void>
   logout: () => Promise<void>
   register: (email: string, password: string, name: string) => Promise<void>
   resetPassword: (email: string) => Promise<void>
@@ -44,73 +41,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [firebaseUser, setFirebaseUser] = useState<AuthUser | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [lastActivity, setLastActivity] = useState<number>(Date.now())
-
-  // Check for session timeout
-  useEffect(() => {
-    // Update lastActivity on user interaction
-    const updateLastActivity = () => {
-      setLastActivity(Date.now())
-      // Store last activity in session storage
-      sessionStorage.setItem('lastActivity', Date.now().toString())
-    }
-
-    // Add event listeners for user activity
-    window.addEventListener('click', updateLastActivity)
-    window.addEventListener('keypress', updateLastActivity)
-    window.addEventListener('scroll', updateLastActivity)
-    window.addEventListener('mousemove', updateLastActivity)
-
-    // Check for timeout periodically
-    const intervalId = setInterval(() => {
-      const storedLastActivity = sessionStorage.getItem('lastActivity')
-      const lastActivityTime = storedLastActivity ? parseInt(storedLastActivity) : lastActivity
-      
-      // If session has timed out, log out
-      if (Date.now() - lastActivityTime > SESSION_TIMEOUT && firebaseUser) {
-        logout()
-        .then(() => {
-          console.log('Session timed out. Logged out automatically.')
-        })
-        .catch(error => {
-          console.error('Error during automatic logout:', error)
-        })
-      }
-    }, 60000) // Check every minute
-
-    // Handle browser close/refresh
-    window.addEventListener('beforeunload', () => {
-      // Store last activity in localStorage on page close
-      localStorage.setItem('lastActivity', lastActivity.toString())
-    })
-
-    // On page load, check if there's previous activity stored
-    const checkPreviousSession = () => {
-      const storedLastActivity = localStorage.getItem('lastActivity')
-      
-      if (storedLastActivity) {
-        const lastActivityTime = parseInt(storedLastActivity)
-        
-        // If previous session has expired, clear any persisted auth state
-        if (Date.now() - lastActivityTime > SESSION_TIMEOUT) {
-          signOut(auth).catch(err => console.error('Error clearing expired session:', err))
-        }
-        
-        // Remove from localStorage after checking
-        localStorage.removeItem('lastActivity')
-      }
-    }
-    
-    checkPreviousSession()
-
-    return () => {
-      window.removeEventListener('click', updateLastActivity)
-      window.removeEventListener('keypress', updateLastActivity)
-      window.removeEventListener('scroll', updateLastActivity)
-      window.removeEventListener('mousemove', updateLastActivity)
-      clearInterval(intervalId)
-    }
-  }, [firebaseUser, lastActivity])
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (authUser) => {
@@ -167,16 +97,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
           
           setUser(userProfile);
-          
-          // Reset activity timer on successful auth
-          setLastActivity(Date.now())
-          sessionStorage.setItem('lastActivity', Date.now().toString())
         } else {
           setFirebaseUser(null)
           setUser(null)
         }
       } catch (error) {
         console.error("Error checking authentication:", error)
+        setFirebaseUser(null)
+        setUser(null)
       } finally {
         setIsLoading(false)
       }
@@ -185,9 +113,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => unsubscribe()
   }, [])
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, rememberMe: boolean = false) => {
     setIsLoading(true)
     try {
+      // Configure persistence based on "remember me" checkbox
+      await configureAuthPersistence(rememberMe)
+      
       await signInWithEmailAndPassword(auth, email, password)
     } catch (error) {
       console.error("Login error:", error)
@@ -197,9 +128,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const loginWithGoogle = async () => {
+  const loginWithGoogle = async (rememberMe: boolean = false) => {
     setIsLoading(true)
     try {
+      // Configure persistence based on "remember me" checkbox
+      await configureAuthPersistence(rememberMe)
+      
       const provider = new GoogleAuthProvider()
       await signInWithPopup(auth, provider)
     } catch (error) {
@@ -213,6 +147,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const register = async (email: string, password: string, name: string) => {
     setIsLoading(true)
     try {
+      // Set session persistence for registration (user can choose later)
+      await configureAuthPersistence(false)
+      
       // Create user in Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const authUser = userCredential.user;
@@ -261,6 +198,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const logout = async () => {
+    setIsLoading(true)
     try {
       // Update user status to offline if user exists
       if (user && firebaseUser) {
@@ -272,16 +210,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           });
         } catch (error) {
           console.error("Error updating user status:", error);
+          // Continue with logout even if status update fails
         }
       }
       
-      // Clear session storage
-      sessionStorage.removeItem('lastActivity')
-      
       await signOut(auth)
+      
+      // Clear local state
+      setUser(null)
+      setFirebaseUser(null)
     } catch (error) {
       console.error("Logout error:", error)
       throw error
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -303,6 +245,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       })
     } catch (error) {
       console.error('Error updating user profile:', error)
+      throw error
     }
   }
 

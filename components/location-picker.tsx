@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card } from "@/components/ui/card"
 import { MapPin } from "lucide-react"
+import { setPersistence, browserSessionPersistence, browserLocalPersistence } from "firebase/auth"
 
 const containerStyle = {
   width: "100%",

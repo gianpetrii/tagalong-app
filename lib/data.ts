@@ -395,18 +395,18 @@ export async function searchTrips(
     if (origin) {
       tripsQuery = query(tripsQuery, where("origin", "==", origin));
     }
-    
+
     if (destination) {
       tripsQuery = query(tripsQuery, where("destination", "==", destination));
     }
-    
+
     if (date) {
       tripsQuery = query(tripsQuery, where("date", "==", date));
     }
-    
+
     // Execute query
     const querySnapshot = await getDocs(tripsQuery);
-    
+
     if (!querySnapshot.empty) {
       // Get trips from Firestore
       let trips: any[] = querySnapshot.docs.map(doc => {
@@ -419,28 +419,36 @@ export async function searchTrips(
           availableSeats: Number(data.availableSeats)
         };
       });
-      
+
+      // Filter out past trips - Only show future trips
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      trips = trips.filter((trip) => {
+        const tripDate = new Date(trip.date);
+        return tripDate >= today;
+      });
+
       // Apply client-side filters for complex queries
       if (minPrice !== undefined) {
         trips = trips.filter((trip) => trip.price >= minPrice);
       }
-      
+
       if (maxPrice !== undefined) {
         trips = trips.filter((trip) => trip.price <= maxPrice);
       }
-      
+
       if (minDepartureTime) {
         trips = trips.filter((trip) => trip.departureTime >= minDepartureTime);
       }
-      
+
       if (maxDepartureTime) {
         trips = trips.filter((trip) => trip.departureTime <= maxDepartureTime);
       }
-      
-      if (minRating !== undefined && trips[0].driver) {
+
+      if (minRating !== undefined && trips[0]?.driver) {
         trips = trips.filter((trip) => trip.driver && trip.driver.rating >= minRating);
       }
-      
+
       // Sort results
       switch (sortBy) {
         case "price-asc":
@@ -453,14 +461,14 @@ export async function searchTrips(
           trips.sort((a, b) => a.departureTime.localeCompare(b.departureTime))
           break
         case "rating":
-          if (trips[0].driver) {
+          if (trips[0]?.driver) {
             trips.sort((a, b) => (b.driver?.rating || 0) - (a.driver?.rating || 0))
           }
           break
         case "recommended":
         default:
           // For recommended, use a combination of price and rating
-          if (trips[0].driver) {
+          if (trips[0]?.driver) {
             trips.sort((a, b) => {
               const ratingDiff = (b.driver?.rating || 0) - (a.driver?.rating || 0)
               const priceDiff = a.price - b.price
@@ -470,13 +478,23 @@ export async function searchTrips(
             trips.sort((a, b) => a.price - b.price)
           }
       }
-      
+
       return trips;
     }
-    
+
     // Fall back to mock data if no results from Firestore
+    // Filter mock data to only show future trips
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
     return mockTrips.filter((trip) => {
       let isMatch = true
+
+      // First check if trip is in the future
+      const tripDate = new Date(trip.date);
+      if (tripDate < today) {
+        return false;
+      }
 
       if (origin && !trip.origin.toLowerCase().includes(origin.toLowerCase())) {
         isMatch = false
@@ -531,8 +549,13 @@ export async function searchTrips(
     })
   } catch (error) {
     console.error("Error searching trips:", error);
-    // Fall back to mock data in case of error
-    return mockTrips;
+    // Fall back to mock data in case of error, but still filter future trips
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return mockTrips.filter(trip => {
+      const tripDate = new Date(trip.date);
+      return tripDate >= today;
+    });
   }
 }
 
@@ -596,6 +619,10 @@ export async function getRelatedTrips(
   // Simulate API delay
   await new Promise((resolve) => setTimeout(resolve, 600))
 
+  // Filter for future trips only
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
   // Find trips with same origin and destination, excluding current trip
   return mockTrips
     .filter(
@@ -603,7 +630,7 @@ export async function getRelatedTrips(
         trip.id !== currentTripId &&
         trip.origin === origin &&
         trip.destination === destination &&
-        new Date(trip.date) >= new Date(date),
+        new Date(trip.date) >= today, // Only show future trips
     )
     .slice(0, 3)
 }
@@ -636,7 +663,7 @@ export const sampleTrips: Trip[] = [
     id: "1",
     origin: "Buenos Aires",
     destination: "Mar del Plata",
-    date: "2024-03-15",
+    date: "2025-03-15",
     departureTime: "08:00",
     arrivalTime: "12:00",
     duration: "4h 00m",
@@ -668,7 +695,7 @@ export const sampleTrips: Trip[] = [
     id: "2",
     origin: "Córdoba",
     destination: "Rosario",
-    date: "2024-03-16",
+    date: "2025-03-16",
     departureTime: "10:00",
     arrivalTime: "14:00",
     duration: "4h 00m",
@@ -697,7 +724,7 @@ export const sampleTrips: Trip[] = [
     id: "3",
     origin: "Mendoza",
     destination: "San Juan",
-    date: "2024-03-17",
+    date: "2025-03-17",
     departureTime: "09:00",
     arrivalTime: "11:30",
     duration: "2h 30m",
@@ -774,10 +801,20 @@ export async function getTrips({ origin, destination, date }: { origin: string; 
     )
     const querySnapshot = await getDocs(q)
     
+    // Filter out past trips - Only show future trips
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
     // Obtener todos los viajes
     const trips = await Promise.all(
       querySnapshot.docs.map(async (docSnapshot) => {
         const tripData = docSnapshot.data()
+        
+        // Check if trip is in the future
+        const tripDate = new Date(tripData.date);
+        if (tripDate < today) {
+          return null; // Skip past trips
+        }
         
         // Obtener la información del conductor
         if (tripData.driverId) {
@@ -807,7 +844,8 @@ export async function getTrips({ origin, destination, date }: { origin: string; 
       })
     )
     
-    return trips
+    // Filter out null values (past trips)
+    return trips.filter(trip => trip !== null)
   } catch (error) {
     console.error("Error fetching trips:", error)
     return []
@@ -824,10 +862,20 @@ export async function getRecentTrips(): Promise<any[]> {
     )
     const querySnapshot = await getDocs(q)
     
+    // Filter out past trips - Only show future trips
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
     // Obtener todos los viajes
     const trips = await Promise.all(
       querySnapshot.docs.map(async (docSnapshot) => {
         const tripData = docSnapshot.data()
+        
+        // Check if trip is in the future
+        const tripDate = new Date(tripData.date);
+        if (tripDate < today) {
+          return null; // Skip past trips
+        }
         
         // Obtener la información del conductor
         if (tripData.driverId) {
@@ -857,7 +905,8 @@ export async function getRecentTrips(): Promise<any[]> {
       })
     )
     
-    return trips
+    // Filter out null values (past trips)
+    return trips.filter(trip => trip !== null)
   } catch (error) {
     console.error("Error fetching recent trips:", error)
     return []

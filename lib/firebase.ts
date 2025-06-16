@@ -2,7 +2,7 @@
 import { initializeApp, getApps } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
 import { getFirestore } from "firebase/firestore";
-import { getAuth } from "firebase/auth";
+import { getAuth, setPersistence, browserSessionPersistence, browserLocalPersistence } from "firebase/auth";
 import { getStorage } from "firebase/storage";
 
 // Your web app's Firebase configuration
@@ -35,5 +35,21 @@ const auth = getAuth(app);
 
 // Initialize Storage
 const storage = getStorage(app);
+
+// Helper function to configure auth persistence
+export const configureAuthPersistence = async (rememberMe: boolean = false) => {
+  try {
+    if (rememberMe) {
+      // Local persistence: survives browser restart
+      await setPersistence(auth, browserLocalPersistence);
+    } else {
+      // Session persistence: only for current browser session
+      await setPersistence(auth, browserSessionPersistence);
+    }
+  } catch (error) {
+    console.error("Error setting auth persistence:", error);
+    // Fallback to default (usually local persistence)
+  }
+};
 
 export { app, db, auth, storage, analytics }; 

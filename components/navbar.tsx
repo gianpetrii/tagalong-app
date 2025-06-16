@@ -3,9 +3,10 @@
 import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { Menu, X, User, LogOut, Car, Search, MapPin } from "lucide-react"
 import { useAuth } from "@/context/auth-context"
+import { useToast } from "@/components/ui/use-toast"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -18,11 +19,35 @@ import { ThemeToggle } from "@/components/theme-toggle"
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
   const { user, logout } = useAuth()
+  const { toast } = useToast()
+  const router = useRouter()
   const pathname = usePathname()
 
   const isActive = (path: string) => {
     return pathname === path
+  }
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true)
+    try {
+      await logout()
+      toast({
+        title: "Sesión cerrada",
+        description: "Has cerrado sesión correctamente.",
+      })
+      router.push("/")
+    } catch (error) {
+      console.error("Logout error:", error)
+      toast({
+        title: "Error al cerrar sesión",
+        description: "Hubo un problema al cerrar la sesión. Intenta nuevamente.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoggingOut(false)
+    }
   }
 
   return (
@@ -80,6 +105,7 @@ export default function Navbar() {
                     size="icon"
                     className="focus-visible:ring-0 focus-visible:ring-offset-0"
                     aria-label="Abrir menú de perfil"
+                    disabled={isLoggingOut}
                   >
                     <User className="h-5 w-5 text-emerald-600 dark:text-emerald-400 transition-colors" />
                   </Button>
@@ -103,9 +129,13 @@ export default function Navbar() {
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={logout}>
+                  <DropdownMenuItem 
+                    onClick={handleLogout}
+                    disabled={isLoggingOut}
+                    className="cursor-pointer"
+                  >
                     <LogOut className="mr-2 h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                    <span>Cerrar sesión</span>
+                    <span>{isLoggingOut ? "Cerrando sesión..." : "Cerrar sesión"}</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -131,13 +161,18 @@ export default function Navbar() {
                   size="icon"
                   className="focus-visible:ring-0 focus-visible:ring-offset-0"
                   aria-label="Mi perfil"
+                  disabled={isLoggingOut}
                 >
                   <User className="h-5 w-5 text-emerald-600 dark:text-emerald-400 transition-colors" />
                 </Button>
               </Link>
             )}
 
-            <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="ml-2 text-emerald-600 dark:text-emerald-400">
+            <button 
+              onClick={() => setIsMenuOpen(!isMenuOpen)} 
+              className="ml-2 text-emerald-600 dark:text-emerald-400"
+              disabled={isLoggingOut}
+            >
               {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
           </div>
@@ -203,14 +238,19 @@ export default function Navbar() {
                   Mis viajes
                 </Link>
                 <button
-                  className="w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
+                  className={`w-full text-left px-3 py-2 rounded-md text-base font-medium ${
+                    isLoggingOut 
+                      ? "text-gray-400 cursor-not-allowed" 
+                      : "text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
+                  }`}
                   onClick={() => {
-                    logout()
+                    handleLogout()
                     setIsMenuOpen(false)
                   }}
+                  disabled={isLoggingOut}
                 >
                   <LogOut className="h-4 w-4 inline mr-2 text-emerald-600 dark:text-emerald-400" />
-                  Cerrar sesión
+                  {isLoggingOut ? "Cerrando sesión..." : "Cerrar sesión"}
                 </button>
               </>
             ) : (
