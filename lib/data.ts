@@ -395,18 +395,18 @@ export async function searchTrips(
     if (origin) {
       tripsQuery = query(tripsQuery, where("origin", "==", origin));
     }
-
+    
     if (destination) {
       tripsQuery = query(tripsQuery, where("destination", "==", destination));
     }
-
+    
     if (date) {
       tripsQuery = query(tripsQuery, where("date", "==", date));
     }
-
+    
     // Execute query
     const querySnapshot = await getDocs(tripsQuery);
-
+    
     if (!querySnapshot.empty) {
       // Get trips from Firestore
       let trips: any[] = querySnapshot.docs.map(doc => {
@@ -427,28 +427,28 @@ export async function searchTrips(
         const tripDate = new Date(trip.date);
         return tripDate >= today;
       });
-
+      
       // Apply client-side filters for complex queries
       if (minPrice !== undefined) {
         trips = trips.filter((trip) => trip.price >= minPrice);
       }
-
+      
       if (maxPrice !== undefined) {
         trips = trips.filter((trip) => trip.price <= maxPrice);
       }
-
+      
       if (minDepartureTime) {
         trips = trips.filter((trip) => trip.departureTime >= minDepartureTime);
       }
-
+      
       if (maxDepartureTime) {
         trips = trips.filter((trip) => trip.departureTime <= maxDepartureTime);
       }
-
+      
       if (minRating !== undefined && trips[0]?.driver) {
         trips = trips.filter((trip) => trip.driver && trip.driver.rating >= minRating);
       }
-
+      
       // Sort results
       switch (sortBy) {
         case "price-asc":
@@ -478,10 +478,10 @@ export async function searchTrips(
             trips.sort((a, b) => a.price - b.price)
           }
       }
-
+      
       return trips;
     }
-
+    
     // Fall back to mock data if no results from Firestore
     // Filter mock data to only show future trips
     const today = new Date();

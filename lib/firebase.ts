@@ -4,6 +4,7 @@ import { getAnalytics } from "firebase/analytics";
 import { getFirestore } from "firebase/firestore";
 import { getAuth, setPersistence, browserSessionPersistence, browserLocalPersistence } from "firebase/auth";
 import { getStorage } from "firebase/storage";
+import { getDatabase } from "firebase/database";
 
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
@@ -14,7 +15,8 @@ const firebaseConfig = {
   storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
+  databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL
 };
 
 // Initialize Firebase
@@ -36,6 +38,9 @@ const auth = getAuth(app);
 // Initialize Storage
 const storage = getStorage(app);
 
+// Initialize Realtime Database
+const realtimeDb = getDatabase(app);
+
 // Helper function to configure auth persistence
 export const configureAuthPersistence = async (rememberMe: boolean = false) => {
   try {
@@ -52,4 +57,4 @@ export const configureAuthPersistence = async (rememberMe: boolean = false) => {
   }
 };
 
-export { app, db, auth, storage, analytics }; 
+export { auth, db, storage, realtimeDb, analytics }; 

@@ -20,6 +20,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { useAuth } from "@/context/auth-context"
 import LocationPicker from "@/components/location-picker"
+import { DEFAULT_CANCELLATION_POLICY, STRICT_CANCELLATION_POLICY } from "@/lib/trip-state-manager"
+import { CancellationPolicy } from "@/lib/types"
 
 export default function TripPostingForm() {
   const router = useRouter()
@@ -57,6 +59,11 @@ export default function TripPostingForm() {
     plate: ""
   })
   const [notes, setNotes] = useState("")
+  
+  // Configuraciones de estado del viaje
+  const [acceptsSpecialRequests, setAcceptsSpecialRequests] = useState(false)
+  const [requiresConfirmation, setRequiresConfirmation] = useState(true)
+  const [cancellationPolicy, setCancellationPolicy] = useState<CancellationPolicy>(DEFAULT_CANCELLATION_POLICY)
 
   useEffect(() => {
     const loadCities = async () => {
@@ -137,6 +144,15 @@ export default function TripPostingForm() {
           origin: originLocation?.coordinates || { lat: 0, lng: 0 },
           destination: destinationLocation?.coordinates || { lat: 0, lng: 0 }
         },
+        
+        // Sistema de estados expandido
+        status: "published" as const,
+        acceptsSpecialRequests,
+        requiresConfirmation,
+        cancellationPolicy,
+        totalBookings: 0,
+        confirmedBookings: 0,
+        
         // Campos opcionales
         ...(carInfo.year && { carYear: parseInt(carInfo.year) }),
         ...(carInfo.plate && { carPlate: carInfo.plate }),
@@ -333,7 +349,7 @@ export default function TripPostingForm() {
           <div className="space-y-4">
             <h3 className="text-lg font-medium">Información del vehículo</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
+          <div>
                 <Label htmlFor="carBrand">Marca</Label>
                 <Input
                   id="carBrand"
@@ -447,6 +463,66 @@ export default function TripPostingForm() {
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
             />
+          </div>
+
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium">Configuración del viaje</h3>
+            
+            <div className="space-y-3">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="acceptsSpecialRequests"
+                  checked={acceptsSpecialRequests}
+                  onCheckedChange={(checked) => setAcceptsSpecialRequests(checked as boolean)}
+                />
+                <Label htmlFor="acceptsSpecialRequests" className="cursor-pointer">
+                  Aceptar solicitudes de recogida personalizada (con costo adicional)
+                </Label>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="requiresConfirmation"
+                  checked={requiresConfirmation}
+                  onCheckedChange={(checked) => setRequiresConfirmation(checked as boolean)}
+                />
+                                 <Label htmlFor="requiresConfirmation" className="cursor-pointer">
+                   Requerir al menos una reserva confirmada (viaje expira si no hay reservas 1h antes)
+                 </Label>
+              </div>
+            </div>
+
+            <div>
+              <Label>Política de cancelación</Label>
+              <Select 
+                value={cancellationPolicy === DEFAULT_CANCELLATION_POLICY ? "flexible" : "strict"}
+                onValueChange={(value) => {
+                  setCancellationPolicy(value === "flexible" ? DEFAULT_CANCELLATION_POLICY : STRICT_CANCELLATION_POLICY)
+                }}
+              >
+                <SelectTrigger className="mt-2">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="flexible">
+                    <div>
+                      <div className="font-medium">Flexible</div>
+                      <div className="text-sm text-muted-foreground">
+                        Cancelación gratuita hasta 24h antes • Reembolso 100%
+                      </div>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="strict">
+                    <div>
+                      <div className="font-medium">Estricta</div>
+                      <div className="text-sm text-muted-foreground">
+                        Cancelación gratuita hasta 48h antes • Después 20% penalidad
+                      </div>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="flex justify-end">
